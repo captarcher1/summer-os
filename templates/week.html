@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Week — Summer OS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">This week</h1>
+    <p class="page-sub" id="week-range">Loading…</p>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-green">Weekdays — structured</span>
+    <span class="badge badge-amber">Weekend — autonomous</span>
+  </div>
+</div>
+
+<!-- Weekly XP + balance summary -->
+<div class="metric-grid" id="week-metrics">
+  <div class="metric-card">
+    <div class="metric-label">Weekly XP</div>
+    <div class="metric-val" id="wk-xp">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">XP target</div>
+    <div class="metric-val">3,500</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Balance score</div>
+    <div class="metric-val" id="wk-balance">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Compliance</div>
+    <div class="metric-val" id="wk-compliance">—</div>
+  </div>
+</div>
+
+<!-- Weekly XP progress bar -->
+<div class="card">
+  <div class="section-label">Weekly XP progress</div>
+  <div class="xp-bar-row">
+    <span class="xp-bar-label" id="bar-label-left">0 XP earned</span>
+    <span class="xp-bar-label">3,500 XP target</span>
+  </div>
+  <div class="xp-bar-wrap">
+    <div class="xp-bar" id="weekly-xp-bar" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- Schedule grid -->
+<div class="card" style="padding:1rem; overflow-x:auto">
+  <div class="section-label" style="margin-bottom:12px">Schedule grid</div>
+  <div class="week-grid" id="week-grid">
+    <!-- Populated by JS -->
+    <div style="padding:1rem; color:var(--text-muted); font-size:13px">Loading schedule…</div>
+  </div>
+</div>
+
+<!-- Balance breakdown -->
+<div class="card">
+  <div class="section-label" style="margin-bottom:12px">Category balance this week</div>
+  <div id="balance-breakdown">
+    <div style="font-size:13px; color:var(--text-muted)">Loading…</div>
+  </div>
+</div>
+
+<!-- AI flags -->
+<div id="flags-section" style="display:none">
+  <div class="card">
+    <div class="section-label" style="margin-bottom:10px">Balance flags</div>
+    <div id="flags-list"></div>
+  </div>
+</div>
+
+<!-- Regenerate button -->
+<div style="margin-top:8px">
+  <button class="btn-log" style="width:100%; padding:10px; font-size:14px"
+    onclick="regenerateWeek()">
+    <i class="ti ti-refresh"></i> Regenerate next 7 days with AI
+  </button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const TIME_SLOTS = ["07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00"];
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+async function loadWeek() {
+  // Get today and compute week start (Monday)
+  const today = new Date();
+  const dow = today.getDay();
+  const diff = (dow === 0 ? -6 : 1 - dow);
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() + diff);
+
+  // Date range label
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  document.getElementById("week-range").textContent =
+    fmt(weekStart) + " – " + fmt(weekEnd);
+
+  // Fetch all 7 days
+  const schedules = {};
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    const iso = d.toISOString().slice(0,10);
+    try {
+      const res = await fetch(`/schedule/date/${iso}`);
+      schedules[iso] = await res.json();
+    } catch(_) { schedules[iso] = {blocks:[]}; }
+  }
+
+  renderGrid(schedules, weekStart);
+  loadWeekMetrics();
+}
+
+function renderGrid(schedules, weekStart) {
+  const grid = document.getElementById("week-grid");
+  grid.innerHTML = "";
+  grid.style.cssText = `
+    display:grid;
+    grid-template-columns: 48px repeat(5, 1fr) repeat(2, 0.85fr);
+    gap:3px; font-size:11px;
+  `;
+
+  // Header row
+  appendCell(grid, "", "wg-head");
+  DAYS.forEach((d,i) => {
+    const cell = appendCell(grid, d, "wg-head");
+    if (i >= 5) cell.style.color = "var(--amber-600)";
+  });
+
+  // Time slot rows
+  TIME_SLOTS.forEach(slot => {
+    appendCell(grid, slot, "wg-time");
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      const iso = d.toISOString().slice(0,10);
+      const blocks = (schedules[iso] && schedules[iso].blocks) || [];
+      const match = blocks.find(b => b.start_time <= slot && b.end_time > slot);
+      if (match) {
+        const cell = appendCell(grid, match.label, "wg-cell " + (match.color_class || "cell-free"));
+        cell.title = `${match.start_time}–${match.end_time}: ${match.label}`;
+      } else {
+        appendCell(grid, "", "wg-cell cell-empty");
+      }
+    }
+  });
+}
+
+function appendCell(parent, text, cls) {
+  const el = document.createElement("div");
+  el.className = cls;
+  el.textContent = text;
+  parent.appendChild(el);
+  return el;
+}
+
+async function loadWeekMetrics() {
+  try {
+    const res = await fetch("/api/today");
+    const d = await res.json();
+    const wxp = d.weekly_xp || 0;
+    document.getElementById("wk-xp").textContent = wxp.toLocaleString();
+    document.getElementById("wk-balance").textContent = (d.balance && d.balance.balance_score) || "—";
+
+    const pct = Math.min(Math.round((wxp / 3500) * 100), 100);
+    document.getElementById("weekly-xp-bar").style.width = pct + "%";
+    document.getElementById("bar-label-left").textContent = wxp.toLocaleString() + " XP earned";
+
+    // Balance breakdown bars
+    if (d.balance && d.balance.breakdown) {
+      renderBreakdown(d.balance.breakdown);
+    }
+    if (d.balance && d.balance.flags && d.balance.flags.length) {
+      renderFlags(d.balance.flags);
+    }
+  } catch(_) {}
+}
+
+const CAT_TARGETS = {sports:3, finance:4, education:3, household:4, family:2};
+const CAT_COLORS  = {
+  sports:"var(--green-600)", finance:"var(--purple-600)",
+  education:"var(--blue-800)", household:"var(--gray-600)", family:"var(--pink-600)"
+};
+
+function renderBreakdown(breakdown) {
+  const el = document.getElementById("balance-breakdown");
+  el.innerHTML = "";
+  for (const [cat, target] of Object.entries(CAT_TARGETS)) {
+    const actual = breakdown[cat] || 0;
+    const pct = Math.min(Math.round((actual / target) * 100), 100);
+    const color = CAT_COLORS[cat] || "var(--purple-600)";
+    el.innerHTML += `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span style="color:var(--text-muted);text-transform:capitalize">${cat}</span>
+          <span style="font-weight:500;color:${pct>=100?'var(--green-600)':'var(--text-muted)'}">${actual} / ${target} sessions</span>
+        </div>
+        <div class="xp-bar-wrap">
+          <div style="height:10px;border-radius:99px;background:${color};width:${pct}%;transition:width .4s"></div>
+        </div>
+      </div>`;
+  }
+}
+
+function renderFlags(flags) {
+  const section = document.getElementById("flags-section");
+  const list = document.getElementById("flags-list");
+  section.style.display = "block";
+  list.innerHTML = flags.map(f => `
+    <div class="alert alert-${f.severity || 'warning'}" style="margin-bottom:6px">
+      <i class="ti ti-alert-triangle"></i> ${f.message}
+    </div>`).join("");
+}
+
+async function regenerateWeek() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = "Regenerating…";
+  try {
+    await fetch("/schedule/week", {method:"POST"});
+    window.location.reload();
+  } catch(_) {
+    btn.textContent = "Error — try again";
+    btn.disabled = false;
+  }
+}
+
+function fmt(d) {
+  return d.toLocaleDateString("en-US", {month:"short", day:"numeric"});
+}
+
+loadWeek();
+</script>
+
+<style>
+.week-grid { min-width: 480px; }
+.wg-head {
+  font-size:11px; font-weight:500; color:var(--text-muted);
+  padding:4px 4px 8px; text-align:center;
+}
+.wg-time {
+  font-size:10px; color:var(--text-hint);
+  padding:4px 4px; text-align:right; align-self:center;
+}
+.wg-cell {
+  border-radius:5px; padding:4px 5px;
+  font-size:10px; font-weight:500;
+  min-height:32px; display:flex;
+  align-items:center; justify-content:center;
+  text-align:center; line-height:1.3;
+}
+.cell-empty { background:transparent; }
+</style>
+{% endblock %}

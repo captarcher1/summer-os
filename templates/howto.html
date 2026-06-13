@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block title %}How to Use — Summer.GG{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">How to Use Summer.GG</h1>
+    <p class="page-sub">Your guide to levelling up this summer</p>
+  </div>
+  <span class="badge badge-purple"><i class="ti ti-help-circle"></i> Guide</span>
+</div>
+
+<!-- ── Hero: the core loop ─────────────────────────────────── -->
+<div class="card" style="background:linear-gradient(135deg,var(--purple-50),var(--green-50));border-color:var(--purple-200)">
+  <div class="section-label" style="margin-bottom:14px;color:var(--purple-700)">The core loop — 3 steps</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+    <div style="text-align:center;padding:14px;background:var(--surface);border-radius:var(--radius-md)">
+      <div style="font-size:28px;margin-bottom:6px">💪</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">1. Do stuff</div>
+      <div style="font-size:12px;color:var(--text-muted)">Sports, reading, chores, finance lessons — anything on your schedule</div>
+    </div>
+    <div style="text-align:center;padding:14px;background:var(--surface);border-radius:var(--radius-md)">
+      <div style="font-size:28px;margin-bottom:6px">⭐</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">2. Log XP</div>
+      <div style="font-size:12px;color:var(--text-muted)">Hit the "Log" button on the Today tab after each activity to bank your points</div>
+    </div>
+    <div style="text-align:center;padding:14px;background:var(--surface);border-radius:var(--radius-md)">
+      <div style="font-size:28px;margin-bottom:6px">🎮</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">3. Earn gaming</div>
+      <div style="font-size:12px;color:var(--text-muted)">Hit the daily XP target and unlock your gaming hours window</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── XP system ─────────────────────────────────────────────── -->
+<div class="card">
+  <div class="section-label" style="margin-bottom:14px">⭐ How XP works</div>
+
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+    Every activity earns XP. Stack enough XP and you level up. Levels are just bragging rights —
+    the real prize is the gaming window you unlock each day.
+  </p>
+
+  <div style="overflow-x:auto">
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead>
+        <tr style="color:var(--text-hint);font-size:11px;text-transform:uppercase;letter-spacing:.05em">
+          <th style="text-align:left;padding:6px 8px;font-weight:500;border-bottom:0.5px solid var(--border)">Activity</th>
+          <th style="text-align:right;padding:6px 8px;font-weight:500;border-bottom:0.5px solid var(--border)">XP</th>
+          <th style="text-align:left;padding:6px 8px;font-weight:500;border-bottom:0.5px solid var(--border)">Category</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-top:0.5px solid var(--border)">
+          <td style="padding:7px 8px"><i class="ti ti-tournament" style="color:var(--green-600)"></i> Taekwondo practice</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--green-600)">+100</td>
+          <td style="padding:7px 8px;color:var(--text-muted)">Sports</td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--border)">
+          <td style="padding:7px 8px"><i class="ti ti-barbell" style="color:var(--green-600)"></i> Sports / movement</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--green-600)">+100</td>
+          <td style="padding:7px 8px;color:var(--text-muted)">Sports</td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--border)">
+          <td style="padding:7px 8px"><i class="ti ti-book" style="color:var(--blue-600)"></i> Reading (30 min)</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--blue-600)">+100</td>
+          <td style="padding:7px 8px;color:var(--text-muted)">Education</td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--border)">
+          <td style="padding:7px 8px"><i class="ti ti-currency-dollar" style="color:var(--purple-600)"></i> Finance lesson</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--purple-600)">+150</td>
+          <td style="padding:7px 8px;color:var(--text-muted)">Finance</td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--border)">
+          <td style="padding:7px 8px"><i class="ti ti-trending-up" style="color:var(--purple-600)"></i> Paper trade</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--purple-600)">+75</td>
+          <td style="padding:7px 8px;color:var(--text-muted)">Finance</td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--border)">
+          <td style="padding:7px 8px"><i class="ti ti-home-2" style="color:var(--gray-600)"></i> Chores (full list)</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--amber-700)">+500</td>
+          <td style="padding:7px 8px;color:var(--text-muted)">Household 🔥</td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--border)">
+          <td style="padding:7px 8px"><i class="ti ti-users" style="color:var(--pink-600)"></i> Family time (1 hr)</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--pink-600)">+200</td>
+          <td style="padding:7px 8px;color:var(--text-muted)">Family</td>
+        </tr>
+        <tr style="border-top:0.5px solid var(--border)">
+          <td style="padding:7px 8px"><i class="ti ti-run" style="color:var(--green-600)"></i> Training session</td>
+          <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--green-600)">+200</td>
+          <td style="padding:7px 8px;color:var(--text-muted)">Sports</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="background:var(--amber-50);border-color:var(--amber-200);margin-top:12px;padding:10px 12px">
+    <div style="font-size:12px;font-weight:600;color:var(--amber-700);margin-bottom:4px">
+      <i class="ti ti-bolt"></i> Daily target: 500 XP
+    </div>
+    <div style="font-size:12px;color:var(--amber-700)">
+      Hit 500 XP in a day and you unlock your gaming hours. Miss it and gaming is off.
+      Your parent sets the exact cap (default: 4 hours).
+    </div>
+  </div>
+</div>
+
+<!-- ── Today tab ─────────────────────────────────────────────── -->
+<div class="card">
+  <div class="section-label" style="margin-bottom:12px">📅 Today tab — your daily routine</div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">🤖</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px">AI builds your schedule</div>
+        <div style="font-size:12px;color:var(--text-muted)">When the app starts, the AI coach looks at your recent XP and balance and generates a personalised schedule. You can also hit <strong>AI</strong> to regenerate or <strong>Manual</strong> to build your own.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">✅</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px">Log activities as you go</div>
+        <div style="font-size:12px;color:var(--text-muted)">After finishing an activity, find it in today's schedule and tap <strong>Log +XP</strong>. The XP goes straight to your daily total and you'll see confetti 🎉.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">🔥</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px">Build your streak</div>
+        <div style="font-size:12px;color:var(--text-muted)">Log at least one activity every day to keep your streak alive. The flame badge in the top bar shows your current streak days.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Finance tab ────────────────────────────────────────────── -->
+<div class="card">
+  <div class="section-label" style="margin-bottom:12px">💰 Finance tab — learn money & invest</div>
+
+  <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+    The Finance tab has two things: a <strong>learning track</strong> with real lessons about money,
+    and a <strong>paper trading</strong> sandbox where you can buy/sell stocks with fake money.
+  </p>
+
+  <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">📚</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px">3 tiers of lessons — unlock in order</div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          <strong>Tier 1</strong> (green) — Financial literacy basics. Start here.<br>
+          <strong>Tier 2</strong> (purple) — Stock market and investing. Unlocks after Tier 1.<br>
+          <strong>Tier 3</strong> (locked) — Advanced strategy. Unlocks after Tier 2.
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">📝</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px">How to complete a lesson</div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          Click on a lesson to expand it → read the paragraph → answer all 3 quiz questions correctly → hit <strong>Claim 150 XP</strong>.
+          The next lesson only unlocks after you claim XP on the current one.
+          Got 2 wrong answers? The correct ones are revealed and you can still claim.
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">📈</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px">Paper trading — no real money</div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          Use the trade form to buy and sell stocks with fake money. Type your rationale and the AI coach will review your trade idea before you execute it.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--purple-50);border-color:var(--purple-200);padding:10px 12px">
+    <div style="font-size:12px;font-weight:600;color:var(--purple-700);margin-bottom:4px">
+      <i class="ti ti-brain"></i> Tip: use "Ask the finance coach"
+    </div>
+    <div style="font-size:12px;color:var(--purple-700)">
+      There's an AI chat box on the Finance tab. Type any concept — "what is a P/E ratio?", "explain ETFs", "what is short selling?" — and get an instant plain-English explanation.
+    </div>
+  </div>
+</div>
+
+<!-- ── Streaks & Levels ───────────────────────────────────────── -->
+<div class="card">
+  <div class="section-label" style="margin-bottom:12px">🏆 Streaks, levels & rewards</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="padding:12px;background:var(--surface-2,var(--gray-50));border-radius:var(--radius-md)">
+      <div style="font-size:16px;margin-bottom:4px">🔥 Streaks</div>
+      <div style="font-size:12px;color:var(--text-muted)">Log at least one activity every day. The longer the streak, the more momentum you build. It shows in the flame badge at the top.</div>
+    </div>
+    <div style="padding:12px;background:var(--surface-2,var(--gray-50));border-radius:var(--radius-md)">
+      <div style="font-size:16px;margin-bottom:4px">⚡ Levels</div>
+      <div style="font-size:12px;color:var(--text-muted)">XP accumulates and pushes you through levels. The progress bar on the Today tab shows how far you are to the next level.</div>
+    </div>
+    <div style="padding:12px;background:var(--surface-2,var(--gray-50));border-radius:var(--radius-md)">
+      <div style="font-size:16px;margin-bottom:4px">💵 Real earnings</div>
+      <div style="font-size:12px;color:var(--text-muted)">Your parent can set a conversion rate (e.g. 500 XP = $1). Every XP you earn is tracked on the Parent tab as real money you've earned.</div>
+    </div>
+    <div style="padding:12px;background:var(--surface-2,var(--gray-50));border-radius:var(--radius-md)">
+      <div style="font-size:16px;margin-bottom:4px">🏅 Rewards tab</div>
+      <div style="font-size:12px;color:var(--text-muted)">Check the Rewards tab to see your progress towards milestones — it tracks what you've unlocked across the summer.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Quick tips ────────────────────────────────────────────── -->
+<div class="card" style="background:var(--green-50);border-color:var(--green-200)">
+  <div class="section-label" style="margin-bottom:10px;color:var(--green-700)">⚡ Quick tips</div>
+  <ul style="font-size:13px;color:var(--green-800);line-height:2;padding-left:18px;margin:0">
+    <li>Chores are worth <strong>500 XP</strong> — the biggest single earner. Do them early.</li>
+    <li>Finance lessons stack XP <em>and</em> teach you real-world skills. Don't skip them.</li>
+    <li>The AI coach note at the bottom of Today shows where your balance is weak — pay attention to it.</li>
+    <li>You can switch between dark and light mode using the sun/moon button in the top right.</li>
+    <li>Gaming is a reward, not a default. Earn it every day.</li>
+  </ul>
+</div>
+
+<!-- ── Parent section (collapsible) ─────────────────────────── -->
+<details style="margin-top:4px">
+  <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;
+    padding:12px 16px;background:var(--surface);border:0.5px solid var(--border);
+    border-radius:var(--radius-md);font-size:13px;font-weight:500;user-select:none">
+    <i class="ti ti-shield" style="color:var(--purple-600)"></i>
+    For parents — setup &amp; controls
+    <i class="ti ti-chevron-down" style="margin-left:auto;font-size:13px;color:var(--text-muted)"></i>
+  </summary>
+
+  <div style="padding:0 4px;margin-top:8px;display:flex;flex-direction:column;gap:10px">
+
+    <div class="card">
+      <div class="section-label" style="margin-bottom:10px">🔐 PIN &amp; access</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7">
+        The Parent tab is PIN-protected (default: <code style="background:var(--surface-2);padding:1px 5px;border-radius:4px">1234</code> — change it immediately).
+        From there you can override gaming caps, set the weekend XP minimum, and view the AI weekly summary.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label" style="margin-bottom:10px">💰 XP → real earnings</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7">
+        In Override Controls, set the <strong>XP → dollar rate</strong> (default: 500 XP = $1).
+        The Real Earnings Tracker card on the Parent tab shows the total dollar equivalent earned over the summer.
+        Pay it out however you prefer — weekly, monthly, or at the end of summer.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label" style="margin-bottom:10px">📚 Setting up finance lessons</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7">
+        25 lessons come pre-loaded. On the Parent tab → <strong>Generate AI Finance Lessons</strong>:<br><br>
+        <strong>Step 1</strong> — Pick a tier and click "Generate (up to 5)" to add new lesson titles via Ollama.<br>
+        <strong>Step 2</strong> — Click "Pre-generate all lesson content" to cache content for every lesson upfront.
+        Without Step 2, each lesson generates on first expand (takes 10–30 seconds). With Step 2 done, every lesson opens instantly.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label" style="margin-bottom:10px">🔄 Resetting for a new summer</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7">
+        Parent tab → scroll to the bottom → <strong>Initialize / Reset App</strong>. Enter your PIN to confirm.
+        This wipes all XP, logs, trades, and lesson progress but keeps your settings, activities, and lesson content.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label" style="margin-bottom:10px">⚙️ Customisation</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7">
+        In Override Controls you can:<br>
+        • Set the child's <strong>name, age, and gender</strong> so AI prompts are personalised<br>
+        • Adjust <strong>XP rates per activity</strong> to match your household priorities<br>
+        • Set the <strong>daily gaming cap</strong> (max hours even if target is hit)<br>
+        • Set the <strong>weekend XP minimum</strong> (lighter than weekdays but still required)
+      </div>
+    </div>
+
+  </div>
+</details>
+
+{% endblock %}
+
+{% block scripts %}
+<style>
+details summary::-webkit-details-marker { display: none; }
+details[open] summary .ti-chevron-down { transform: rotate(180deg); }
+details summary .ti-chevron-down { transition: transform .2s; }
+</style>
+{% endblock %}

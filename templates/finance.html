@@ -1,0 +1,1012 @@
+{% extends "base.html" %}
+{% block title %}Finance — Summer OS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Finance lab</h1>
+    <p class="page-sub">Paper trading · Lessons · Strategy</p>
+  </div>
+  <span class="badge badge-purple" id="fin-lessons-badge">Loading…</span>
+</div>
+
+<!-- Portfolio summary -->
+<div class="metric-grid">
+  <div class="metric-card">
+    <div class="metric-label">Portfolio value</div>
+    <div class="metric-val" id="port-value">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Total return</div>
+    <div class="metric-val" id="port-gain">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Positions</div>
+    <div class="metric-val" id="port-positions">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Lessons done</div>
+    <div class="metric-val" id="lessons-done">—</div>
+  </div>
+</div>
+
+<!-- Learning track -->
+<div class="card">
+  <div class="section-label" style="margin-bottom:12px">Learning track</div>
+
+  <!-- Tier 1 -->
+  <details id="tier-1-block" class="tier-block" open
+    style="background:var(--green-50);border-radius:var(--radius-md);margin-bottom:8px">
+    <summary class="tier-summary" style="color:var(--green-600)">
+      <div style="font-size:13px;font-weight:500">
+        <i class="ti ti-school"></i> Tier 1 — financial literacy
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span class="badge badge-green" id="t1-badge">0 / 10</span>
+        <i class="ti ti-chevron-down expand-chevron" style="color:var(--green-600)"></i>
+      </div>
+    </summary>
+    <div class="tier-body">
+      <div style="font-size:12px;color:var(--green-600);opacity:.85;margin-bottom:8px">
+        Budgeting · compound interest · savings goals · inflation · credit
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar" id="t1-bar" style="width:0%;background:var(--green-600)"></div>
+      </div>
+      <div id="t1-lessons" style="margin-top:10px"></div>
+    </div>
+  </details>
+
+  <!-- Tier 2 -->
+  <details id="tier-2-block" class="tier-block"
+    style="background:var(--purple-50);border-radius:var(--radius-md);margin-bottom:8px">
+    <summary class="tier-summary" style="color:var(--purple-600)">
+      <div style="font-size:13px;font-weight:500">
+        <i class="ti ti-trending-up"></i> Tier 2 — paper trading
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span class="badge badge-purple" id="t2-badge">0 / 10</span>
+        <i class="ti ti-chevron-down expand-chevron" style="color:var(--purple-600)"></i>
+      </div>
+    </summary>
+    <div class="tier-body">
+      <div style="font-size:12px;color:var(--purple-600);opacity:.85;margin-bottom:8px">
+        Stock analysis · P/E · chart reading · position sizing · stop-loss
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar" id="t2-bar" style="width:0%;background:var(--purple-600)"></div>
+      </div>
+      <div id="t2-lessons" style="margin-top:10px"></div>
+    </div>
+  </details>
+
+  <!-- Tier 3 -->
+  <details id="tier-3-block" class="tier-block"
+    style="background:var(--gray-50);border-radius:var(--radius-md);opacity:.7">
+    <summary class="tier-summary" style="color:var(--gray-600)">
+      <div style="font-size:13px;font-weight:500">
+        <i class="ti ti-lock" id="t3-lock"></i> Tier 3 — strategy frameworks
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span class="badge" id="t3-badge" style="background:var(--gray-200);color:var(--gray-600)">Locked</span>
+        <i class="ti ti-chevron-down expand-chevron" style="color:var(--gray-600)"></i>
+      </div>
+    </summary>
+    <div class="tier-body">
+      <div style="font-size:12px;color:var(--gray-600);margin-bottom:8px">
+        Screeners · fundamental analysis · technical signals · options intro
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar" id="t3-bar" style="width:0%;background:var(--gray-600)"></div>
+      </div>
+      <div id="t3-lessons" style="margin-top:10px"></div>
+    </div>
+  </details>
+</div>
+
+<!-- AI explain panel -->
+<div class="card card-ai">
+  <div class="ai-header"><i class="ti ti-robot"></i> Ask the finance coach</div>
+  <div style="display:flex;gap:8px">
+    <input type="text" id="concept-input" placeholder="e.g. P/E ratio, short selling, ETFs…" style="flex:1;font-size:13px">
+    <button class="btn-log" onclick="explainConcept()" style="padding:6px 14px;white-space:nowrap">
+      Explain
+    </button>
+  </div>
+  <div id="concept-output" style="margin-top:10px;font-size:13px;color:var(--text-muted);line-height:1.65;display:none"></div>
+</div>
+
+<!-- Paper trade form -->
+<div class="card">
+  <div class="section-label" style="margin-bottom:12px">Place a paper trade</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:start">
+    <div>
+      <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Symbol</div>
+      <input type="text" id="trade-symbol" placeholder="AAPL"
+             style="width:100%;text-transform:uppercase;font-size:13px"
+             oninput="onTickerInput(this.value)">
+      <div id="ticker-quote" style="font-size:11px;margin-top:4px;min-height:16px;line-height:1.4"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Shares</div>
+      <input type="number" id="trade-shares" placeholder="5" min="1" step="1" style="width:100%;font-size:13px">
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Action</div>
+      <select id="trade-action" style="width:100%;font-size:13px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text)">
+        <option value="buy">Buy</option>
+        <option value="sell">Sell</option>
+      </select>
+    </div>
+  </div>
+  <!-- Investment thesis — required -->
+  <div style="margin-top:10px">
+    <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">
+      Investment thesis <span style="color:var(--red-600)">*</span>
+      <span style="font-weight:400"> — AI coach must review before trade executes</span>
+    </div>
+    <input type="text" id="trade-rationale" placeholder="Why are you making this trade? What's your thesis?"
+           style="width:100%;font-size:13px">
+  </div>
+  <div style="margin-top:10px">
+    <button class="btn-log" id="review-btn" onclick="reviewTrade()" style="padding:8px 16px;height:36px">
+      <i class="ti ti-robot"></i> Review with AI Coach
+    </button>
+  </div>
+  <!-- AI review panel -->
+  <div id="trade-feedback" style="margin-top:12px;display:none"></div>
+  <!-- Yes / No confirmation -->
+  <div id="trade-confirm" style="display:none;margin-top:12px;padding:12px;background:var(--gray-50);border-radius:var(--radius-md);border:0.5px solid var(--border)">
+    <div style="font-size:13px;font-weight:500;margin-bottom:10px;color:var(--text)">
+      Place this trade based on the AI's recommendations?
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="confirm-yes" onclick="confirmTrade(true)"
+              style="padding:8px 20px;background:var(--green-600);color:#fff;border:none;border-radius:var(--radius-md);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-check"></i> Yes, place trade
+      </button>
+      <button id="confirm-no" onclick="confirmTrade(false)"
+              style="padding:8px 20px;background:var(--gray-200);color:var(--text);border:none;border-radius:var(--radius-md);font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px">
+        <i class="ti ti-x"></i> No, cancel
+      </button>
+    </div>
+  </div>
+  <div id="trade-result" style="margin-top:10px;font-size:13px;font-weight:500;display:none"></div>
+</div>
+
+<!-- Portfolio holdings -->
+<div class="card" id="portfolio-card">
+  <div class="section-label" style="margin-bottom:10px">Portfolio holdings</div>
+  <div id="holdings-list">
+    <div style="font-size:13px;color:var(--text-muted)">Loading portfolio…</div>
+  </div>
+</div>
+
+<!-- Trade history -->
+<div class="card">
+  <details>
+    <summary class="expand-summary">
+      <i class="ti ti-history" style="margin-right:6px"></i>Recent trades
+      <i class="ti ti-chevron-down expand-chevron" style="margin-left:auto"></i>
+    </summary>
+    <div style="margin-top:10px" id="trade-history">
+      <div style="font-size:13px;color:var(--text-muted)">Loading…</div>
+    </div>
+  </details>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+// quizAttempts: { lesson_key: number } — resets on page reload, that's intentional
+const quizAttempts = {};
+// lessonData: cached lessons array from last /finance/lessons fetch
+let lessonData = [];
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
+async function loadFinance() {
+  loadPortfolio();
+  loadLessons();
+  loadTradeHistory();
+}
+
+// ─── Portfolio ────────────────────────────────────────────────────────────────
+async function loadPortfolio() {
+  try {
+    const res = await fetch("/finance/portfolio");
+    const d   = await res.json();
+
+    document.getElementById("port-value").textContent =
+      "$" + (d.total_value || 0).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+    const gp = d.total_gain_pct || 0;
+    const gainEl = document.getElementById("port-gain");
+    gainEl.textContent = (gp >= 0 ? "+" : "") + gp.toFixed(2) + "%";
+    gainEl.style.color = gp >= 0 ? "var(--green-600)" : "var(--red-600)";
+    document.getElementById("port-positions").textContent = (d.positions || []).length;
+
+    const list = document.getElementById("holdings-list");
+    if (!d.positions || d.positions.length === 0) {
+      list.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">No positions yet — place your first trade above.</p>';
+      return;
+    }
+    list.innerHTML = d.positions.map(p => `
+      <div class="activity-row">
+        <div class="activity-icon cell-fin" style="width:32px;height:32px;font-size:12px;font-weight:600">
+          ${p.symbol.slice(0,3)}
+        </div>
+        <div class="activity-info">
+          <div class="activity-title">${p.symbol} <span style="font-weight:400;font-size:12px;color:var(--text-muted)">${p.name}</span></div>
+          <div class="activity-meta">${p.shares} shares · avg $${p.avg_cost} · now $${p.current_price}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:500;color:${p.gain_pct>=0?'var(--green-600)':'var(--red-600)'}">
+            ${p.gain_pct>=0?'+':''}${p.gain_pct.toFixed(2)}%
+          </div>
+          <div style="font-size:11px;color:var(--text-muted)">$${p.current_value.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        </div>
+      </div>`).join("");
+  } catch(_) {}
+}
+
+// ─── Lessons ──────────────────────────────────────────────────────────────────
+async function loadLessons() {
+  try {
+    const res = await fetch("/finance/lessons");
+    lessonData = await res.json();
+
+    const byTier = {1:[],2:[],3:[]};
+    lessonData.forEach(l => (byTier[l.tier] || []).push(l));
+
+    let totalDone = 0;
+    [1,2,3].forEach(tier => {
+      const items = byTier[tier];
+      const done  = items.filter(l => l.completed).length;
+      const total = items.length;
+      totalDone  += done;
+      const pct  = total ? Math.round((done/total)*100) : 0;
+
+      document.getElementById(`t${tier}-bar`).style.width = pct + "%";
+      document.getElementById(`t${tier}-badge`).textContent = `${done} / ${total}`;
+
+      renderLessonList(tier, items);
+
+    });
+
+    const t1items = byTier[1];
+    const t1done  = t1items.filter(l => l.completed).length;
+    const t2items = byTier[2];
+    const t2done  = t2items.filter(l => l.completed).length;
+    const t3items = byTier[3];
+
+    // ── Tier 2 locked until Tier 1 fully complete ──────────────────────────
+    const t2block   = document.getElementById("tier-2-block");
+    const t2summary = t2block.querySelector("summary");
+    if (t1done < t1items.length) {
+      t2block.style.opacity = "0.55";
+      t2block.removeAttribute("open");
+      t2summary.onclick = e => e.preventDefault();
+      document.getElementById("t2-lessons").innerHTML =
+        `<p style="font-size:12px;color:var(--text-muted);padding:6px 0">
+           Complete all Tier 1 lessons to unlock Tier 2.
+         </p>`;
+    } else {
+      t2block.style.opacity = "1";
+      t2summary.onclick = null;
+    }
+
+    // ── Tier 3 locked until Tier 2 fully complete ──────────────────────────
+    const t3block   = document.getElementById("tier-3-block");
+    const t3summary = t3block.querySelector("summary");
+    if (t2done < t2items.length) {
+      t3block.style.opacity = "0.55";
+      t3block.removeAttribute("open");
+      t3summary.onclick = e => e.preventDefault();
+      document.getElementById("t3-lessons").innerHTML =
+        `<p style="font-size:12px;color:var(--text-muted);padding:6px 0">
+           Complete all Tier 2 lessons to unlock Tier 3.
+         </p>`;
+    } else {
+      t3block.style.opacity = "1";
+      t3block.style.background = "var(--purple-50)";
+      t3summary.onclick = null;
+      document.getElementById("t3-lock").className = "ti ti-lock-open";
+      document.getElementById("t3-badge").textContent = `${t3items.filter(l=>l.completed).length} / ${t3items.length}`;
+      document.getElementById("t3-badge").style.cssText = "background:var(--purple-50);color:var(--purple-800)";
+    }
+
+    document.getElementById("lessons-done").textContent = totalDone + " / 25";
+    document.getElementById("fin-lessons-badge").textContent = totalDone + " / 25 lessons";
+  } catch(e) { console.error("loadLessons error:", e); }
+}
+
+/**
+ * Determine if a lesson is locked.
+ * A lesson is locked if it's not the first in its tier AND
+ * the previous lesson (by sort_order) is not completed.
+ */
+function isLocked(lesson, allInTier) {
+  if (lesson.completed) return false; // completed = never locked
+  const idx = allInTier.findIndex(l => l.lesson_key === lesson.lesson_key);
+  if (idx === 0) return false; // first lesson always available
+  const prev = allInTier[idx - 1];
+  return !prev.completed; // locked if previous not done
+}
+
+function renderLessonList(tier, items) {
+  const container = document.getElementById(`t${tier}-lessons`);
+  container.innerHTML = items.map((l, idx) => {
+    const locked    = isLocked(l, items);
+    const completed = !!l.completed;
+    const quizDone  = !!l.quiz_passed;
+
+    let statusIcon, statusColor, statusText;
+    if (completed) {
+      statusIcon = "ti-circle-check"; statusColor = "var(--green-600)"; statusText = "Completed";
+    } else if (locked) {
+      statusIcon = "ti-lock"; statusColor = "var(--text-hint)"; statusText = "Locked";
+    } else if (quizDone) {
+      statusIcon = "ti-circle-check-filled"; statusColor = "var(--purple-600)"; statusText = "Quiz passed — claim XP";
+    } else {
+      statusIcon = "ti-circle"; statusColor = "var(--text-muted)"; statusText = "Available";
+    }
+
+    const canExpand = !locked;
+    const expandHint = canExpand && !completed ? ' title="Click to open lesson"' : '';
+
+    return `
+    <div class="lesson-card ${completed?'lesson-completed':''} ${locked?'lesson-locked':''}"
+         id="lc-${l.lesson_key}" data-key="${l.lesson_key}">
+      <div class="lesson-header"
+           onclick="${canExpand ? `toggleLesson('${l.lesson_key}')` : ''}"
+           style="cursor:${canExpand?'pointer':'default'}"${expandHint}>
+        <i class="ti ${statusIcon}" style="color:${statusColor};font-size:15px;flex-shrink:0"></i>
+        <span class="lesson-title ${completed?'lesson-title-done':''}">${l.title}</span>
+        ${locked ? '<span class="lesson-status-chip chip-locked">Locked</span>' : ''}
+        ${completed ? '<span class="lesson-status-chip chip-done">+150 XP</span>' : ''}
+        ${!locked && !completed && quizDone ? '<span class="lesson-status-chip chip-quiz">Quiz ✓</span>' : ''}
+        ${canExpand && !completed ? `<i class="ti ti-chevron-down lesson-chevron" id="chev-${l.lesson_key}"></i>` : ''}
+      </div>
+      <div class="lesson-body" id="lb-${l.lesson_key}" style="display:none">
+        <!-- Content loaded on expand -->
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ─── Accordion ────────────────────────────────────────────────────────────────
+async function toggleLesson(key) {
+  const body = document.getElementById(`lb-${key}`);
+  const chev = document.getElementById(`chev-${key}`);
+  const isOpen = body.style.display !== "none";
+
+  // Close all open bodies in same tier first
+  document.querySelectorAll(".lesson-body").forEach(el => { el.style.display = "none"; });
+  document.querySelectorAll(".lesson-chevron").forEach(el => { el.style.transform = ""; });
+
+  if (isOpen) return; // was open — just close it
+
+  // Open this one
+  body.style.display = "block";
+  if (chev) chev.style.transform = "rotate(180deg)";
+
+  // Load content if not yet loaded
+  if (!body.dataset.loaded) {
+    body.innerHTML = `<div class="lesson-loading"><i class="ti ti-brain"></i> Generating lesson with AI…</div>`;
+    await loadLessonContent(key, body);
+  }
+}
+
+async function loadLessonContent(key, body) {
+  try {
+    const res = await fetch(`/finance/lessons/${key}/content`);
+    const d   = await res.json();
+    if (d.error) {
+      body.innerHTML = `<p style="color:var(--red-600);font-size:13px">${d.error}</p>`;
+      return;
+    }
+    body.dataset.loaded = "1";
+    renderLessonBody(key, body, d.content, d.questions);
+  } catch(e) {
+    body.innerHTML = `<p style="color:var(--red-600);font-size:13px">Failed to load lesson — check Ollama is running.</p>`;
+  }
+}
+
+function renderLessonBody(key, body, content, questions) {
+  const lesson   = lessonData.find(l => l.lesson_key === key) || {};
+  const completed = !!lesson.completed;
+  const quizPassed = !!lesson.quiz_passed;
+  const attempts   = quizAttempts[key] || 0;
+  const showAnswers = attempts >= 2; // reveal after 2 failed attempts
+
+  let quizHtml = "";
+  if (questions && questions.length) {
+    quizHtml = `<div class="quiz-block" id="quiz-${key}">
+      <div class="quiz-label">Quiz — answer all 3 to claim XP</div>
+      ${questions.map((q, qi) => `
+        <div class="quiz-question" id="qq-${key}-${qi}">
+          <div class="quiz-q-text">Q${qi+1}: ${q.question}</div>
+          <div class="quiz-options">
+            ${q.options.map((opt, oi) => `
+              <label class="quiz-option" id="qo-${key}-${qi}-${oi}">
+                <input type="radio" name="q-${key}-${qi}" value="${oi}"> ${opt}
+              </label>`).join("")}
+          </div>
+        </div>`).join("")}
+      <div class="quiz-actions">
+        <button class="btn-log btn-quiz-submit" id="qsubmit-${key}"
+          onclick="submitQuiz('${key}', ${questions.length})">
+          Submit Quiz
+        </button>
+        <div class="quiz-feedback" id="qfeedback-${key}"></div>
+      </div>
+    </div>`;
+  }
+
+  let claimHtml = "";
+  if (!completed) {
+    claimHtml = `<div id="claim-area-${key}" style="margin-top:10px;display:${quizPassed?'block':'none'}">
+      <button class="btn-log btn-claim-xp" id="claim-${key}"
+        onclick="claimXP('${key}')">
+        <i class="ti ti-star"></i> Claim 150 XP
+      </button>
+    </div>`;
+  }
+
+  body.innerHTML = `
+    <div class="lesson-content-text">${content}</div>
+    ${!completed ? quizHtml : '<div class="quiz-done-msg"><i class="ti ti-circle-check"></i> Lesson complete — well done!</div>'}
+    ${claimHtml}
+  `;
+
+  // If quiz already passed (page reload case), hide quiz, show claim
+  if (quizPassed && !completed) {
+    const qb = document.getElementById(`quiz-${key}`);
+    if (qb) qb.style.display = "none";
+    const ca = document.getElementById(`claim-area-${key}`);
+    if (ca) ca.style.display = "block";
+  }
+}
+
+// ─── Quiz submission ──────────────────────────────────────────────────────────
+async function submitQuiz(key, numQuestions) {
+  const answers = [];
+  for (let qi = 0; qi < numQuestions; qi++) {
+    const selected = document.querySelector(`input[name="q-${key}-${qi}"]:checked`);
+    if (!selected) {
+      showToast("Answer all questions before submitting", "warning");
+      return;
+    }
+    answers.push(parseInt(selected.value));
+  }
+
+  const submitBtn = document.getElementById(`qsubmit-${key}`);
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Checking…";
+
+  try {
+    const res = await fetch(`/finance/lessons/${key}/submit-quiz`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({answers}),
+    });
+    const d = await res.json();
+
+    if (d.passed) {
+      // All correct — show success, reveal Claim XP button, hide quiz
+      d.correct.forEach((ok, qi) => markOption(key, qi, answers[qi], ok, []));
+      showToast("All correct! Claim your XP 🎉", "success");
+
+      const qb = document.getElementById(`quiz-${key}`);
+      if (qb) { qb.style.opacity = "0.5"; qb.style.pointerEvents = "none"; }
+      const fb = document.getElementById(`qfeedback-${key}`);
+      if (fb) fb.innerHTML = `<span style="color:var(--green-600);font-weight:500">✓ ${d.score}/${d.total} correct — quiz passed!</span>`;
+
+      const ca = document.getElementById(`claim-area-${key}`);
+      if (ca) ca.style.display = "block";
+
+      // Update local lessonData so re-renders reflect quiz_passed
+      const lesson = lessonData.find(l => l.lesson_key === key);
+      if (lesson) lesson.quiz_passed = 1;
+
+    } else {
+      // Wrong answers
+      quizAttempts[key] = (quizAttempts[key] || 0) + 1;
+      const attempt = quizAttempts[key];
+
+      const fb = document.getElementById(`qfeedback-${key}`);
+      const score = d.score || 0;
+      const total = d.total || numQuestions;
+
+      if (attempt >= 2) {
+        // Reveal correct answers and let them proceed
+        fb.innerHTML = `<span style="color:var(--amber-600)">
+          ${score}/${total} correct. Correct answers revealed below — study them and claim XP when ready.
+        </span>`;
+        // Fetch full answer data by re-fetching content (with answer_index) — actually we need
+        // the correct option highlighted. We get it from the server's correct[] array.
+        // We mark each question: highlight correct (green) and wrong selection (red)
+        d.correct.forEach((ok, qi) => {
+          // Find which option is correct by checking which the server says is ok vs submitted
+          // We need to know the correct index — ask server again with a cheat flag? No.
+          // Instead: if user was wrong, we need to show correct. We'll do a trick:
+          // disable all options and style the selected one red, then grey note "See explanation"
+          markOption(key, qi, answers[qi], ok, null); // null = don't know correct, just mark wrong
+        });
+
+        // After 2 fails: fetch lesson again to get correct answers displayed
+        fetchAndRevealAnswers(key, answers, d.correct);
+
+        // Show Claim XP anyway (pedagogical escape)
+        const ca = document.getElementById(`claim-area-${key}`);
+        if (ca) { ca.style.display = "block"; }
+
+        // Mark quiz_passed server-side so claim works (backend allows it after 2 tries too)
+        // We do this by re-submitting the quiz — but we need the right answers.
+        // Instead: just enable the claim button — backend already set quiz_passed=0 still.
+        // Solution: after 2 fails, also mark quiz_passed server-side via a special header
+        // Actually simpler: re-fetch lesson content to get correct indices, submit those
+        await revealAndPassQuiz(key, numQuestions);
+
+      } else {
+        fb.innerHTML = `<span style="color:var(--red-600)">${score}/${total} correct — try again (attempt ${attempt}/2)</span>`;
+        d.correct.forEach((ok, qi) => markOption(key, qi, answers[qi], ok, []));
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Quiz";
+        // Reset radio selections
+        document.querySelectorAll(`input[name^="q-${key}-"]`).forEach(r => r.checked = false);
+        document.querySelectorAll(`[id^="qo-${key}-"]`).forEach(el => {
+          el.style.background = "";
+          el.style.borderColor = "";
+        });
+      }
+    }
+  } catch(e) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Submit Quiz";
+    showToast("Error checking answers — try again", "error");
+  }
+}
+
+function markOption(key, qi, selectedIdx, isCorrect, correctIndices) {
+  const selected = document.getElementById(`qo-${key}-${qi}-${selectedIdx}`);
+  if (selected) {
+    selected.style.background = isCorrect ? "var(--green-50)" : "var(--red-50)";
+    selected.style.borderColor = isCorrect ? "var(--green-600)" : "var(--red-600)";
+    selected.style.color = isCorrect ? "var(--green-600)" : "var(--red-600)";
+  }
+  // Disable all options for this question
+  document.querySelectorAll(`input[name="q-${key}-${qi}"]`).forEach(r => r.disabled = true);
+}
+
+async function fetchAndRevealAnswers(key, submitted, correct) {
+  // Fetch raw lesson data (server strips answer_index — we can't get it directly)
+  // Instead use the correct[] boolean array + submitted answers to infer which is wrong
+  // For the ones that are wrong, we don't know the right answer from correct[] alone.
+  // We'll re-fetch content which won't have answer_index — so we flash all options grey
+  // and add a text note per wrong question.
+  correct.forEach((ok, qi) => {
+    if (!ok) {
+      const wrongOpt = document.getElementById(`qo-${key}-${qi}-${submitted[qi]}`);
+      if (wrongOpt) {
+        wrongOpt.style.background = "var(--red-50)";
+        wrongOpt.style.borderColor = "var(--red-600)";
+        wrongOpt.style.color = "var(--red-600)";
+      }
+      // Add "review the lesson" note
+      const qEl = document.getElementById(`qq-${key}-${qi}`);
+      if (qEl && !qEl.querySelector(".wrong-note")) {
+        const note = document.createElement("div");
+        note.className = "wrong-note";
+        note.style.cssText = "font-size:11px;color:var(--amber-600);margin-top:4px";
+        note.textContent = "Review the lesson above for the correct answer.";
+        qEl.appendChild(note);
+      }
+    }
+  });
+}
+
+async function revealAndPassQuiz(key, numQuestions) {
+  // After 2 failed attempts the student can still claim XP.
+  // We mark quiz_passed by submitting with a sentinel that the server
+  // will treat as "allow after 2 fails". Simplest: add a /pass-after-attempts endpoint.
+  // OR: we expose an endpoint that sets quiz_passed=1 when attempt count >= 2.
+  // For simplicity we call /submit-quiz with empty answers — server will say not passed.
+  // Instead, update: just hit complete_lesson with an X-Allow-After-Attempts header.
+  // Simplest approach: the backend already gates on quiz_passed. So we need server cooperation.
+  // Decision: after 2 fails, call a force-pass endpoint. Add it to backend separately.
+  // For now: disable the claim button in "2 fails" mode until user at least reads answers,
+  // then auto-mark quiz_passed via a POST to /force-pass.
+  try {
+    await fetch(`/finance/lessons/${key}/force-pass`, {method: "POST"});
+    const lesson = lessonData.find(l => l.lesson_key === key);
+    if (lesson) lesson.quiz_passed = 1;
+  } catch(_) {}
+}
+
+// ─── Claim XP ────────────────────────────────────────────────────────────────
+async function claimXP(key) {
+  const btn = document.getElementById(`claim-${key}`);
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2"></i> Claiming…';
+  try {
+    const res = await fetch(`/finance/lessons/${key}/complete`, {method:"POST"});
+    const d   = await res.json();
+    if (d.error) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-star"></i> Claim 150 XP';
+      showToast(d.error, "warning");
+      return;
+    }
+    showToast("+150 XP — lesson complete!", "success");
+    fireConfetti(150, document.getElementById(`claim-${key}`));
+    loadLessons(); // Refresh to unlock next lesson
+  } catch(_) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-star"></i> Claim 150 XP';
+    showToast("Error claiming XP — try again", "error");
+  }
+}
+
+// ─── Trade history ────────────────────────────────────────────────────────────
+async function loadTradeHistory() {
+  try {
+    const res = await fetch("/finance/trades?limit=10");
+    const trades = await res.json();
+    const el = document.getElementById("trade-history");
+    if (!trades.length) {
+      el.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">No trades yet.</p>';
+      return;
+    }
+    el.innerHTML = `
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead>
+          <tr style="color:var(--text-hint);font-size:11px;text-transform:uppercase;letter-spacing:.05em">
+            <th style="text-align:left;padding:4px 0;font-weight:500">Date &amp; time</th>
+            <th style="text-align:left;padding:4px 0;font-weight:500">Symbol</th>
+            <th style="text-align:left;padding:4px 0;font-weight:500">Action</th>
+            <th style="text-align:right;padding:4px 0;font-weight:500">Shares</th>
+            <th style="text-align:right;padding:4px 0;font-weight:500">Price</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${trades.map(t => {
+            const dt = t.traded_at ? new Date(t.traded_at.replace(' ','T')+'Z') : null;
+            const dtStr = dt ? dt.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) : t.trade_date;
+            return `
+          <tr style="border-top:0.5px solid var(--border)">
+            <td style="padding:6px 0;color:var(--text-muted);font-size:11px">${dtStr}</td>
+            <td style="padding:6px 0;font-weight:500">${t.symbol}</td>
+            <td style="padding:6px 0">
+              <span class="badge ${t.action==='buy'?'badge-green':'badge-amber'}">${t.action}</span>
+            </td>
+            <td style="padding:6px 0;text-align:right">${t.shares}</td>
+            <td style="padding:6px 0;text-align:right">$${parseFloat(t.price).toFixed(2)}</td>
+          </tr>`;}).join("")}
+        </tbody>
+      </table>`;
+  } catch(_) {}
+}
+
+// ─── AI explain ───────────────────────────────────────────────────────────────
+async function explainConcept() {
+  const concept = document.getElementById("concept-input").value.trim();
+  if (!concept) return;
+  const output = document.getElementById("concept-output");
+  output.style.display = "block";
+  output.textContent = "Thinking…";
+  try {
+    const res = await fetch("/finance/explain", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({concept}),
+    });
+    const d = await res.json();
+    output.textContent = d.explanation || d.error;
+  } catch(_) { output.textContent = "AI coach offline — start Ollama."; }
+}
+
+// ─── Live ticker quote ────────────────────────────────────────────────────────
+let _tickerTimer = null;
+
+function onTickerInput(val) {
+  const sym      = val.trim().toUpperCase();
+  const inputEl  = document.getElementById("trade-symbol");
+  const quoteEl  = document.getElementById("ticker-quote");
+
+  // Reset confirm panel whenever user changes the symbol
+  document.getElementById("trade-confirm").style.display  = "none";
+  document.getElementById("trade-feedback").style.display = "none";
+  document.getElementById("trade-result").style.display   = "none";
+  pendingTradeData = null;
+
+  inputEl.style.borderColor = "";
+  quoteEl.innerHTML = "";
+
+  clearTimeout(_tickerTimer);
+  if (!sym) return;
+
+  quoteEl.innerHTML = '<span style="color:var(--text-hint)">Looking up…</span>';
+
+  _tickerTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/finance/quote/${encodeURIComponent(sym)}`);
+      const d   = await res.json();
+      if (d.error || !d.price) {
+        inputEl.style.borderColor = "var(--red-600)";
+        quoteEl.innerHTML = `<span style="color:var(--red-600)"><i class="ti ti-alert-circle"></i> "${sym}" not found — check the ticker</span>`;
+      } else {
+        inputEl.style.borderColor = "var(--green-600)";
+        const chg    = d.day_change_pct || 0;
+        const chgClr = chg >= 0 ? "var(--green-600)" : "var(--red-600)";
+        quoteEl.innerHTML =
+          `<span style="color:var(--text-muted)">${d.name}</span> &nbsp;·&nbsp; ` +
+          `<span style="font-weight:600;color:var(--text)">$${d.price.toFixed(2)}</span> ` +
+          `<span style="color:${chgClr}">${chg >= 0 ? "+" : ""}${chg.toFixed(2)}%</span>`;
+      }
+    } catch(_) {
+      quoteEl.innerHTML = '<span style="color:var(--text-hint)">Quote unavailable</span>';
+    }
+  }, 700);
+}
+
+// ─── Paper trade — phase 1: AI review ────────────────────────────────────────
+let pendingTradeData = null;
+
+async function reviewTrade() {
+  const symbol    = document.getElementById("trade-symbol").value.trim().toUpperCase();
+  const shares    = parseFloat(document.getElementById("trade-shares").value);
+  const action    = document.getElementById("trade-action").value;
+  const rationale = document.getElementById("trade-rationale").value.trim();
+
+  if (!symbol || !shares) { showToast("Symbol and shares are required", "warning"); return; }
+  if (!rationale)         { showToast("Investment thesis is required — explain your reasoning first", "warning"); return; }
+
+  const feedbackEl = document.getElementById("trade-feedback");
+  const confirmEl  = document.getElementById("trade-confirm");
+  const resultEl   = document.getElementById("trade-result");
+  const reviewBtn  = document.getElementById("review-btn");
+
+  feedbackEl.style.display = "none";
+  confirmEl.style.display  = "none";
+  resultEl.style.display   = "none";
+  pendingTradeData = null;
+
+  reviewBtn.disabled = true;
+  reviewBtn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .8s linear infinite"></i> Reviewing…';
+
+  feedbackEl.style.display = "block";
+  feedbackEl.innerHTML =
+    '<span style="color:var(--text-muted);font-size:13px"><i class="ti ti-robot"></i> AI coach is reviewing your investment thesis…</span>';
+
+  try {
+    const fr = await fetch("/finance/analyze-trade", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({symbol, rationale}),
+    });
+    const fd = await fr.json();
+
+    feedbackEl.innerHTML = `
+      <div style="padding:12px 14px;background:var(--purple-50);border-radius:var(--radius-md);border:0.5px solid var(--purple-200)">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--purple-600);margin-bottom:6px">
+          <i class="ti ti-robot"></i> AI Coach Review
+        </div>
+        <div style="font-size:13px;color:var(--text);line-height:1.7">${fd.feedback || fd.error || "No response from AI coach."}</div>
+      </div>`;
+
+    pendingTradeData = {symbol, shares, action, notes: rationale};
+    confirmEl.style.display = "block";
+
+  } catch(_) {
+    feedbackEl.innerHTML =
+      '<span style="color:var(--red-600);font-size:13px">AI coach offline — check Ollama is running.</span>';
+  } finally {
+    reviewBtn.disabled = false;
+    reviewBtn.innerHTML = '<i class="ti ti-robot"></i> Review with AI Coach';
+  }
+}
+
+// ─── Paper trade — phase 2: confirm ──────────────────────────────────────────
+async function confirmTrade(yes) {
+  const confirmEl = document.getElementById("trade-confirm");
+  const resultEl  = document.getElementById("trade-result");
+
+  confirmEl.style.display = "none";
+
+  if (!yes) {
+    resultEl.style.display = "block";
+    resultEl.style.color   = "var(--text-muted)";
+    resultEl.textContent   = "Trade cancelled.";
+    pendingTradeData = null;
+    return;
+  }
+
+  if (!pendingTradeData) { showToast("No pending trade — review first", "warning"); return; }
+
+  resultEl.style.display = "block";
+  resultEl.style.color   = "var(--text-muted)";
+  resultEl.textContent   = "Placing trade…";
+
+  try {
+    const res = await fetch("/finance/trade", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(pendingTradeData),
+    });
+    const d = await res.json();
+    if (d.success) {
+      resultEl.style.color = "var(--green-600)";
+      resultEl.textContent = d.message;
+      showToast(d.message, "success");
+      loadPortfolio();
+      loadTradeHistory();
+      // Reset form
+      ["trade-symbol","trade-shares","trade-rationale"].forEach(id => {
+        document.getElementById(id).value = "";
+      });
+      document.getElementById("trade-symbol").style.borderColor = "";
+      document.getElementById("ticker-quote").innerHTML = "";
+      document.getElementById("trade-feedback").style.display = "none";
+    } else {
+      resultEl.style.color = "var(--red-600)";
+      resultEl.textContent = d.message || d.error;
+    }
+    pendingTradeData = null;
+  } catch(_) {
+    resultEl.style.color = "var(--red-600)";
+    resultEl.textContent = "Trade failed — check connection.";
+    showToast("Trade failed — check connection", "error");
+  }
+}
+
+loadFinance();
+</script>
+
+<style>
+/* ── Lesson cards ─────────────────────────────────────────────────────────── */
+.lesson-card {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 6px;
+  overflow: hidden;
+  background: var(--surface);
+  transition: box-shadow .15s;
+}
+.lesson-card:hover:not(.lesson-locked) { box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+.lesson-locked { opacity: .55; }
+.lesson-completed { background: var(--gray-50); }
+
+.lesson-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  user-select: none;
+}
+.lesson-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+.lesson-title-done {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+.lesson-chevron {
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.lesson-status-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.chip-locked { background: var(--gray-100); color: var(--text-hint); }
+.chip-done   { background: var(--green-50); color: var(--green-700); }
+.chip-quiz   { background: var(--purple-50); color: var(--purple-700); }
+
+/* ── Lesson body ─────────────────────────────────────────────────────────── */
+.lesson-body {
+  border-top: 0.5px solid var(--border);
+  padding: 14px 14px 12px;
+}
+.lesson-loading {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 12px 0;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+@keyframes spin  { to { transform: rotate(360deg); } }
+
+.lesson-content-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+/* ── Quiz ────────────────────────────────────────────────────────────────── */
+.quiz-block { margin-top: 2px; }
+.quiz-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-hint);
+  margin-bottom: 10px;
+}
+.quiz-question { margin-bottom: 12px; }
+.quiz-q-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.quiz-options { display: flex; flex-direction: column; gap: 4px; }
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text);
+  padding: 5px 9px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background .1s, border-color .1s;
+}
+.quiz-option:hover { background: var(--surface-hover, var(--gray-50)); }
+.quiz-option input[type="radio"] { accent-color: var(--purple-600); }
+
+.quiz-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.btn-quiz-submit {
+  font-size: 12px;
+  padding: 6px 14px;
+}
+.quiz-feedback { font-size: 12px; }
+
+.quiz-done-msg {
+  font-size: 13px;
+  color: var(--green-600);
+  text-align: center;
+  padding: 10px 0;
+}
+.wrong-note { font-size: 11px; color: var(--amber-600); margin-top: 4px; }
+
+/* ── Claim XP button ─────────────────────────────────────────────────────── */
+.btn-claim-xp {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--green-600);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity .15s;
+}
+.btn-claim-xp:hover { opacity: .88; }
+.btn-claim-xp:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+{% endblock %}

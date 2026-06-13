@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Summer.GG{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+</head>
+<body>
+  <nav class="nav">
+
+    <!-- Logo + name -->
+    <a href="/" class="nav-brand">
+      <div class="nav-logo">
+        <i class="ti ti-bolt" aria-hidden="true"></i>
+      </div>
+      <span class="nav-brand-text">Summer<span class="brand-gg">.GG</span></span>
+    </a>
+
+    <!-- Navigation links -->
+    <div class="nav-links">
+      <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+        <i class="ti ti-home" aria-hidden="true"></i><span>Today</span>
+      </a>
+      <a href="/week" class="nav-link {% if request.path == '/week' %}active{% endif %}">
+        <i class="ti ti-calendar" aria-hidden="true"></i><span>Week</span>
+      </a>
+      <a href="/finance-page" class="nav-link {% if request.path == '/finance-page' %}active{% endif %}">
+        <i class="ti ti-chart-line" aria-hidden="true"></i><span>Finance</span>
+      </a>
+      <a href="/rewards" class="nav-link {% if request.path == '/rewards' %}active{% endif %}">
+        <i class="ti ti-trophy" aria-hidden="true"></i><span>Rewards</span>
+      </a>
+      <a href="/parent-page" class="nav-link {% if request.path == '/parent-page' %}active{% endif %}">
+        <i class="ti ti-shield" aria-hidden="true"></i><span>Parent</span>
+      </a>
+      <a href="/guide" class="nav-link {% if request.path == '/guide' %}active{% endif %}">
+        <i class="ti ti-help-circle" aria-hidden="true"></i><span>Guide</span>
+      </a>
+    </div>
+
+    <!-- Right side: greeting + stats + weather + theme toggle -->
+    <div class="nav-right">
+      <div class="nav-weather" id="nav-weather" title="Current weather">
+        <i class="ti ti-cloud" aria-hidden="true" id="weather-icon"></i>
+        <span id="weather-text">—</span>
+      </div>
+      <div class="nav-stats">
+        <span class="nav-greeting" id="nav-greeting">Hi!</span>
+        <span class="nav-stat stat-xp" id="nav-xp-val" title="Total XP">— XP</span>
+        <span class="nav-stat stat-streak" id="nav-streak-val" title="Day streak">
+          <i class="ti ti-flame" aria-hidden="true"></i><span id="nav-streak-num">—</span>
+        </span>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark/light mode" id="theme-btn">
+        <i class="ti ti-sun" aria-hidden="true" id="theme-icon"></i>
+      </button>
+    </div>
+
+  </nav>
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+
+  <footer style="margin-top:32px;padding:12px 16px 20px;text-align:center;font-size:11px;color:var(--text-hint);border-top:0.5px solid var(--border);line-height:1.6">
+    <i class="ti ti-robot" style="margin-right:4px;vertical-align:-1px"></i>
+    AI-generated content (lessons, quizzes, schedules, coach notes) may contain errors.
+    Always verify important facts. Summer.GG uses a local AI model — answers are not guaranteed to be correct.
+  </footer>
+</body>
+</html>

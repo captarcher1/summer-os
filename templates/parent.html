@@ -1,0 +1,965 @@
+{% extends "base.html" %}
+{% block title %}Parent — Summer OS{% endblock %}
+
+{% block content %}
+<!-- PIN gate — shown until authenticated -->
+<div id="pin-gate" style="max-width:320px;margin:4rem auto;text-align:center">
+  <div class="card" style="padding:2rem">
+    <div style="font-size:36px;margin-bottom:1rem"><i class="ti ti-shield" style="color:var(--purple-600)"></i></div>
+    <h2 style="font-size:18px;font-weight:500;margin-bottom:6px">Parent dashboard</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1.5rem">Enter your PIN to continue</p>
+    <input type="password" id="pin-input" maxlength="8" placeholder="PIN"
+      style="text-align:center;font-size:20px;letter-spacing:.25em;width:100%;margin-bottom:12px"
+      onkeydown="if(event.key==='Enter') verifyPin()">
+    <button class="btn-log" onclick="verifyPin()"
+      style="width:100%;padding:10px;font-size:14px">
+      Unlock
+    </button>
+    <div id="pin-error" style="color:var(--red-600);font-size:13px;margin-top:8px;display:none">
+      Wrong PIN — try again
+    </div>
+  </div>
+</div>
+
+<!-- Dashboard — hidden until authenticated -->
+<div id="parent-dashboard" style="display:none">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Parent dashboard</h1>
+      <p class="page-sub" id="pd-student-name">Loading…</p>
+    </div>
+    <button class="btn-log" onclick="loadWeekReview()" style="font-size:12px;padding:6px 12px">
+      <i class="ti ti-refresh"></i> AI week review
+    </button>
+  </div>
+
+  <!-- Summary metrics -->
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Compliance</div>
+      <div class="metric-val" id="pd-compliance">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Balance score</div>
+      <div class="metric-val" id="pd-balance">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Weekly XP</div>
+      <div class="metric-val" id="pd-weekly-xp">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Streak</div>
+      <div class="metric-val" id="pd-streak">—</div>
+    </div>
+  </div>
+
+  <!-- XP → Earnings card -->
+  <div class="card">
+    <div class="section-label" style="margin-bottom:12px">Real earnings tracker</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:4px">
+      <div class="metric-card" style="margin:0">
+        <div class="metric-label">Total XP</div>
+        <div class="metric-val" id="earn-total-xp">—</div>
+      </div>
+      <div class="metric-card" style="margin:0;background:var(--green-50)">
+        <div class="metric-label" style="color:var(--green-700)">Earned ($)</div>
+        <div class="metric-val" id="earn-dollars" style="color:var(--green-600)">—</div>
+      </div>
+      <div class="metric-card" style="margin:0">
+        <div class="metric-label">Conversion rate</div>
+        <div class="metric-val" style="font-size:13px" id="earn-rate-label">500 XP = $1</div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--text-hint);margin-top:8px">
+      Rate is set in Override controls below. Change and Save to update.
+    </p>
+  </div>
+
+  <!-- Generate lessons card -->
+  <div class="card">
+  <details>
+    <summary class="expand-summary"><i class="ti ti-sparkles" style="margin-right:6px"></i>Generate AI finance lessons <i class="ti ti-chevron-down expand-chevron" style="margin-left:auto"></i></summary>
+    <div class="expand-body">
+
+
+    <!-- Part 1: Add new lesson titles -->
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+      <strong style="color:var(--text)">Step 1 — Add lesson titles.</strong>
+      Ask Ollama to write 5 new lesson titles for the selected tier.
+    </p>
+    <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Tier</div>
+        <select id="gen-tier-select"
+          style="width:100%;font-size:13px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text)">
+          <option value="1">Tier 1 — Financial literacy</option>
+          <option value="2">Tier 2 — Paper trading</option>
+          <option value="3">Tier 3 — Strategy</option>
+        </select>
+      </div>
+      <button class="btn-log" id="gen-lessons-btn" onclick="generateLessons()"
+        style="padding:8px 16px;height:36px;white-space:nowrap">
+        <i class="ti ti-sparkles"></i> Generate (up to 5)
+      </button>
+    </div>
+    <div id="gen-lessons-result" style="margin-top:2px;font-size:13px;display:none"></div>
+
+    <!-- Divider -->
+    <div style="border-top:0.5px solid var(--border);margin:14px 0"></div>
+
+    <!-- Part 2: Pre-warm all lesson content -->
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+      <strong style="color:var(--text)">Step 2 — Pre-generate lesson content.</strong>
+      Run this once after adding titles so every lesson opens instantly in the Finance tab.
+      Lessons with content already cached are skipped.
+    </p>
+
+    <!-- Progress bar (hidden until running) -->
+    <div id="prewarm-progress-wrap" style="display:none;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span id="prewarm-label" style="color:var(--text-muted)">Starting…</span>
+        <span id="prewarm-count" style="font-weight:500;color:var(--text)">0 / 0</span>
+      </div>
+      <div class="xp-bar-wrap">
+        <div id="prewarm-bar" style="height:8px;border-radius:99px;background:var(--purple-600);width:0%;transition:width .3s"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn-log" id="prewarm-btn" onclick="prewarmAllContent()"
+        style="flex:1;padding:9px;font-size:13px;font-weight:500">
+        <i class="ti ti-brain"></i> Pre-generate all lesson content
+      </button>
+      <button id="prewarm-stop-btn" onclick="stopPrewarm()"
+        style="display:none;padding:9px 14px;font-size:13px;border:0.5px solid var(--border);
+               border-radius:var(--radius-md);background:var(--surface);color:var(--text);cursor:pointer">
+        Stop
+      </button>
+    </div>
+    <div id="prewarm-result" style="margin-top:8px;font-size:12px;color:var(--text-muted);display:none"></div>
+      </div>
+  </details>
+</div>
+
+  <!-- AI flag alerts -->
+  <div class="card" id="alerts-card">
+  <details open>
+    <summary class="expand-summary"><i class="ti ti-alert-triangle" style="margin-right:6px;color:var(--amber-600)"></i>AI flag alerts — this week <i class="ti ti-chevron-down expand-chevron" style="margin-left:auto"></i></summary>
+    <div class="expand-body">
+
+    <div id="alerts-list">
+      <div style="font-size:13px;color:var(--text-muted)">Loading…</div>
+    </div>
+      </div>
+  </details>
+</div>
+
+  <!-- Activity breakdown -->
+  <div class="card">
+    <div class="section-label" style="margin-bottom:12px">Activity breakdown — this week</div>
+    <div id="pd-breakdown">
+      <div style="font-size:13px;color:var(--text-muted)">Loading…</div>
+    </div>
+  </div>
+
+  <!-- AI week review -->
+  <div id="week-review-card" style="display:none">
+    <div class="card card-ai">
+      <div class="ai-header"><i class="ti ti-robot"></i> AI weekly summary</div>
+      <p id="week-review-text" class="ai-note">Loading…</p>
+    </div>
+  </div>
+
+  <!-- Coach notes history -->
+  <div class="card">
+  <details>
+    <summary class="expand-summary"><i class="ti ti-robot" style="margin-right:6px"></i>Recent AI coach notes <i class="ti ti-chevron-down expand-chevron" style="margin-left:auto"></i></summary>
+    <div class="expand-body">
+
+    <div id="coach-notes-list">
+      <div style="font-size:13px;color:var(--text-muted)">Loading…</div>
+    </div>
+      </div>
+  </details>
+</div>
+
+  <!-- Override controls -->
+  <div class="card">
+  <details>
+    <summary class="expand-summary"><i class="ti ti-adjustments" style="margin-right:6px"></i>Override controls <i class="ti ti-chevron-down expand-chevron" style="margin-left:auto"></i></summary>
+    <div class="expand-body">
+
+
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label style="font-size:13px">Max daily gaming cap</label>
+        <span style="font-size:13px;font-weight:500;min-width:44px;text-align:right" id="cap-out">4.0 hr</span>
+      </div>
+      <input type="range" min="0.5" max="5" step="0.5" value="4" id="gaming-cap"
+        oninput="document.getElementById('cap-out').textContent=parseFloat(this.value).toFixed(1)+' hr'"
+        style="width:100%">
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label style="font-size:13px">Weekend XP minimum</label>
+        <span style="font-size:13px;font-weight:500;min-width:54px;text-align:right" id="wxp-out">400 XP</span>
+      </div>
+      <input type="range" min="0" max="800" step="50" value="400" id="weekend-xp"
+        oninput="document.getElementById('wxp-out').textContent=this.value+' XP'"
+        style="width:100%">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Student name</div>
+        <input type="text" id="student-name-input" placeholder="Name" style="width:100%;font-size:13px">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Age</div>
+        <input type="number" id="student-age-input" placeholder="15" min="5" max="25"
+          style="width:100%;font-size:13px">
+      </div>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Gender (used to personalise AI coaching)</div>
+      <select id="student-gender-select"
+        style="width:100%;font-size:13px;padding:6px 8px;border:0.5px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text)">
+        <option value="unspecified">Prefer not to say</option>
+        <option value="male">Boy / Male</option>
+        <option value="female">Girl / Female</option>
+        <option value="other">Other / Non-binary</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <label style="font-size:13px">XP → dollar rate</label>
+        <span style="font-size:13px;font-weight:500;min-width:90px;text-align:right" id="xpd-out">500 XP</span>
+      </div>
+      <input type="range" min="100" max="2000" step="100" value="500" id="xp-per-dollar"
+        oninput="document.getElementById('xpd-out').textContent=parseInt(this.value).toLocaleString()+' XP'"
+        style="width:100%">
+      <div style="font-size:11px;color:var(--text-hint);margin-top:3px">
+        Amount of XP equal to $1.00 earned
+      </div>
+    </div>
+
+    <button class="btn-log" onclick="saveSettings()"
+      style="width:100%;padding:10px;font-size:14px">
+      Save settings
+    </button>
+    <div id="settings-saved" style="font-size:13px;color:var(--green-600);margin-top:8px;display:none">
+      Settings saved.
+    </div>
+      </div>
+  </details>
+</div>
+
+  <!-- Manual XP award -->
+  <div class="card">
+    <div class="section-label" style="margin-bottom:12px">Manual XP award / deduction</div>
+    <div style="display:grid;grid-template-columns:1fr 2fr auto;gap:8px;align-items:end">
+      <div>
+        <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Amount (+/−)</div>
+        <input type="number" id="bonus-amount" placeholder="e.g. 200" style="width:100%;font-size:13px">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Reason</div>
+        <input type="text" id="bonus-reason" placeholder="Great attitude, helped a neighbour…" style="width:100%;font-size:13px">
+      </div>
+      <button class="btn-log" onclick="awardBonus()" style="padding:8px 14px;height:36px;white-space:nowrap">
+        Award
+      </button>
+    </div>
+    <div id="bonus-result" style="font-size:13px;margin-top:8px;display:none"></div>
+  </div>
+
+  <!-- XP rate editor -->
+  <div class="card">
+  <details>
+    <summary class="expand-summary"><i class="ti ti-star" style="margin-right:6px"></i>XP rates per activity <i class="ti ti-chevron-down expand-chevron" style="margin-left:auto"></i></summary>
+    <div class="expand-body">
+
+    <div id="xp-rates-list">
+      <div style="font-size:13px;color:var(--text-muted)">Loading…</div>
+    </div>
+    <button class="btn-log" onclick="saveXpRates()"
+      style="width:100%;padding:9px;font-size:13px;font-weight:500;margin-top:12px">
+      Save XP rates
+    </button>
+    <div id="xp-rates-saved" style="font-size:13px;color:var(--green-600);margin-top:6px;display:none">
+      XP rates updated.
+    </div>
+      </div>
+  </details>
+</div>
+
+  <!-- PIN change -->
+  <div class="card">
+  <details>
+    <summary class="expand-summary"><i class="ti ti-key" style="margin-right:6px"></i>Change parent PIN <i class="ti ti-chevron-down expand-chevron" style="margin-left:auto"></i></summary>
+    <div class="expand-body">
+
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Current PIN</div>
+        <input type="password" id="pin-current" maxlength="8" placeholder="••••"
+          style="width:100%;font-size:14px;letter-spacing:.2em">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">New PIN</div>
+        <input type="password" id="pin-new" maxlength="8" placeholder="••••"
+          style="width:100%;font-size:14px;letter-spacing:.2em">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-hint);margin-bottom:4px">Confirm new PIN</div>
+        <input type="password" id="pin-confirm" maxlength="8" placeholder="••••"
+          style="width:100%;font-size:14px;letter-spacing:.2em"
+          onkeydown="if(event.key==='Enter') changePin()">
+      </div>
+    </div>
+    <button class="btn-log" onclick="changePin()"
+      style="width:100%;padding:9px;font-size:13px;font-weight:500;margin-top:12px">
+      Update PIN
+    </button>
+    <div id="pin-change-result" style="font-size:13px;margin-top:6px;display:none"></div>
+      </div>
+  </details>
+</div>
+
+  <!-- Reset card -->
+  <div class="card" style="border:1px solid var(--red-200,#fecaca)">
+  <details>
+    <summary class="expand-summary" style="color:var(--red-600)"><i class="ti ti-refresh-alert" style="margin-right:6px"></i>Initialize / reset app <i class="ti ti-chevron-down expand-chevron" style="margin-left:auto"></i></summary>
+    <div class="expand-body">
+
+    <div class="section-label" style="margin-bottom:10px;color:var(--red-600)">
+      <i class="ti ti-refresh-alert"></i> Initialize / reset app
+    </div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px">
+      Select what to clear. Lesson titles, content, and questions are <strong>never</strong> deleted.
+      Settings and activities are always preserved.
+    </p>
+
+    <!-- Category checkboxes -->
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+
+      <!-- Select all row -->
+      <label class="reset-cat-row" style="background:var(--surface-2,var(--gray-50));border-radius:var(--radius-md);font-weight:600">
+        <input type="checkbox" id="reset-all-chk" onchange="toggleAllReset(this.checked)"
+          style="width:16px;height:16px;accent-color:var(--red-600)">
+        <span style="font-size:13px">Select all</span>
+      </label>
+
+      <div style="border-top:0.5px solid var(--border);margin:2px 0"></div>
+
+      <label class="reset-cat-row">
+        <input type="checkbox" class="reset-cat" value="xp_ledger"
+          style="width:16px;height:16px;accent-color:var(--red-600)" onchange="syncSelectAll()">
+        <span>
+          <span style="font-size:13px">XP ledger</span>
+          <span style="font-size:11px;color:var(--text-muted);display:block">All earned XP erased — level and daily totals reset to zero</span>
+        </span>
+      </label>
+
+      <label class="reset-cat-row">
+        <input type="checkbox" class="reset-cat" value="daily_logs"
+          style="width:16px;height:16px;accent-color:var(--red-600)" onchange="syncSelectAll()">
+        <span>
+          <span style="font-size:13px">Daily logs &amp; coach notes</span>
+          <span style="font-size:11px;color:var(--text-muted);display:block">Activity completion history and AI coach notes cleared</span>
+        </span>
+      </label>
+
+      <label class="reset-cat-row">
+        <input type="checkbox" class="reset-cat" value="streaks"
+          style="width:16px;height:16px;accent-color:var(--red-600)" onchange="syncSelectAll()">
+        <span>
+          <span style="font-size:13px">Streaks</span>
+          <span style="font-size:11px;color:var(--text-muted);display:block">Streak history wiped — counter restarts from zero</span>
+        </span>
+      </label>
+
+      <label class="reset-cat-row">
+        <input type="checkbox" class="reset-cat" value="schedules"
+          style="width:16px;height:16px;accent-color:var(--red-600)" onchange="syncSelectAll()">
+        <span>
+          <span style="font-size:13px">Schedules</span>
+          <span style="font-size:11px;color:var(--text-muted);display:block">All generated daily schedule blocks removed</span>
+        </span>
+      </label>
+
+      <label class="reset-cat-row">
+        <input type="checkbox" class="reset-cat" value="finance_trades"
+          style="width:16px;height:16px;accent-color:var(--red-600)" onchange="syncSelectAll()">
+        <span>
+          <span style="font-size:13px">Finance trades &amp; portfolio</span>
+          <span style="font-size:11px;color:var(--text-muted);display:block">Paper trade history and all holdings deleted — fresh portfolio</span>
+        </span>
+      </label>
+
+      <label class="reset-cat-row">
+        <input type="checkbox" class="reset-cat" value="lesson_progress"
+          style="width:16px;height:16px;accent-color:var(--red-600)" onchange="syncSelectAll()">
+        <span>
+          <span style="font-size:13px">Lesson completion flags</span>
+          <span style="font-size:11px;color:var(--text-muted);display:block">Marks lessons as incomplete so they can be replayed — lesson content kept</span>
+        </span>
+      </label>
+    </div>
+
+    <button class="btn-log" onclick="openResetModal()"
+      style="width:100%;padding:10px;font-size:14px;background:var(--red-600)">
+      <i class="ti ti-trash"></i> Reset selected…
+    </button>
+  </div>
+    </div>
+  </details>
+</div>
+
+</div><!-- /parent-dashboard -->
+
+<!-- Reset confirmation modal -->
+<div id="reset-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+  <div class="card" style="max-width:400px;width:92%;margin:0 auto;padding:1.75rem;position:relative">
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:6px;color:var(--red-600)">
+      <i class="ti ti-alert-triangle"></i> Confirm reset
+    </h3>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px">
+      This will permanently wipe the selected data. Enter your PIN to confirm.
+    </p>
+    <!-- Summary of selected categories -->
+    <div id="reset-summary" style="font-size:12px;background:var(--surface-2,var(--gray-50));
+      border-radius:var(--radius-md);padding:8px 10px;margin-bottom:12px;
+      color:var(--text-muted);line-height:1.7"></div>
+    <input type="password" id="reset-pin-input" maxlength="8" placeholder="PIN"
+      style="text-align:center;font-size:20px;letter-spacing:.25em;width:100%;margin-bottom:12px"
+      onkeydown="if(event.key==='Enter') confirmReset()">
+    <div style="display:flex;gap:8px">
+      <button class="btn-log" onclick="closeResetModal()"
+        style="flex:1;padding:9px;background:var(--surface);color:var(--text);border:0.5px solid var(--border)">
+        Cancel
+      </button>
+      <button class="btn-log" onclick="confirmReset()"
+        style="flex:1;padding:9px;background:var(--red-600)">
+        Yes, reset
+      </button>
+    </div>
+    <div id="reset-error" style="font-size:13px;color:var(--red-600);margin-top:8px;display:none"></div>
+  </div>
+</div>
+
+<style>
+.reset-cat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background .1s;
+}
+.reset-cat-row:hover { background: var(--surface-2, var(--gray-50)); }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _authenticated = false;
+
+async function verifyPin() {
+  const pin = document.getElementById("pin-input").value;
+  document.getElementById("pin-error").style.display = "none";
+  try {
+    const res = await fetch("/parent/verify", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({pin}),
+    });
+    const d = await res.json();
+    if (d.authenticated) {
+      _authenticated = true;
+      document.getElementById("pin-gate").style.display      = "none";
+      document.getElementById("parent-dashboard").style.display = "block";
+      loadDashboard();
+    } else {
+      document.getElementById("pin-error").style.display = "block";
+      document.getElementById("pin-input").value = "";
+    }
+  } catch(_) {
+    showToast("Server error — is Flask running?", "error");
+  }
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetch("/parent/dashboard");
+    const d   = await res.json();
+
+    document.getElementById("pd-student-name").textContent =
+      (d.settings && d.settings.student_name) || "Student";
+    document.getElementById("pd-compliance").textContent  = (d.compliance || 0) + "%";
+    document.getElementById("pd-balance").textContent     = (d.balance && d.balance.balance_score) || "—";
+    document.getElementById("pd-weekly-xp").textContent   = (d.weekly_xp || 0).toLocaleString();
+    document.getElementById("pd-streak").textContent      = (d.streak && d.streak.current_streak) || 0;
+
+    // Pre-fill overrides
+    if (d.settings) {
+      const cap = parseFloat(d.settings.gaming_cap_daily || 4);
+      const wxp = parseInt(d.settings.weekend_xp_minimum || 400);
+      const xpd = parseFloat(d.settings.xp_per_dollar || 500);
+      document.getElementById("gaming-cap").value      = cap;
+      document.getElementById("cap-out").textContent   = cap.toFixed(1) + " hr";
+      document.getElementById("weekend-xp").value      = wxp;
+      document.getElementById("wxp-out").textContent   = wxp + " XP";
+      document.getElementById("student-name-input").value   = d.settings.student_name || "";
+      document.getElementById("student-age-input").value    = d.settings.student_age || "15";
+      document.getElementById("student-gender-select").value = d.settings.student_gender || "unspecified";
+      document.getElementById("xp-per-dollar").value   = xpd;
+      document.getElementById("xpd-out").textContent   = xpd.toLocaleString() + " XP";
+    }
+
+    // Earnings card
+    const totalXp = d.total_xp || 0;
+    const dollars = d.dollars_earned || 0;
+    const xpdRate = parseFloat((d.settings || {}).xp_per_dollar || 500);
+    document.getElementById("earn-total-xp").textContent   = totalXp.toLocaleString() + " XP";
+    document.getElementById("earn-dollars").textContent    = "$" + dollars.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+    document.getElementById("earn-rate-label").textContent = `${xpdRate.toLocaleString()} XP = $1`;
+
+    renderAlerts(d.balance && d.balance.flags || []);
+    renderBreakdown(d.balance && d.balance.breakdown || {});
+    renderCoachNotes(d.coach_notes || []);
+    loadXpRates();
+  } catch(_) {
+    showToast("Could not load dashboard", "error");
+  }
+}
+
+function renderAlerts(flags) {
+  const el = document.getElementById("alerts-list");
+  if (!flags.length) {
+    el.innerHTML = '<div class="alert alert-ok"><i class="ti ti-check"></i> No flags this week — all looking balanced.</div>';
+    return;
+  }
+  el.innerHTML = flags.map(f => {
+    const isWarn = f.severity === "warning";
+    const cls    = isWarn ? "alert-warning" : "alert-alert";
+    const icon   = isWarn ? "ti-alert-triangle" : "ti-alert-circle";
+    return `<div class="alert ${cls}" style="margin-bottom:6px">
+      <i class="ti ${icon}"></i> ${f.message}
+    </div>`;
+  }).join("");
+}
+
+const CAT_META = {
+  sports:    {label:"Sports / movement",   color:"var(--green-600)",  target:3},
+  finance:   {label:"Financial learning",  color:"var(--purple-600)", target:4},
+  education: {label:"Reading / education", color:"var(--blue-800)",   target:3},
+  household: {label:"Chores",              color:"var(--gray-600)",   target:4},
+  family:    {label:"Family time",         color:"var(--pink-600)",   target:2},
+  gaming:    {label:"Gaming (vs earned)",  color:"var(--amber-700)",  target:null},
+};
+
+function renderBreakdown(breakdown) {
+  const el = document.getElementById("pd-breakdown");
+  el.innerHTML = "";
+  for (const [cat, meta] of Object.entries(CAT_META)) {
+    const actual = breakdown[cat] || 0;
+    const pct = meta.target
+      ? Math.min(Math.round((actual / meta.target) * 100), 120)
+      : Math.min(actual * 20, 120);
+    const overrun = pct > 100;
+    const barColor = overrun ? "var(--amber-600)" : meta.color;
+    el.innerHTML += `
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span style="color:var(--text-muted)">${meta.label}</span>
+          <span style="font-weight:500;color:${overrun?'var(--amber-700)':pct>=100?'var(--green-600)':'var(--text-muted)'}">
+            ${meta.target ? `${actual} / ${meta.target} sessions` : `${actual} sessions`}
+            ${overrun ? ' ⚠' : ''}
+          </span>
+        </div>
+        <div class="xp-bar-wrap">
+          <div style="height:10px;border-radius:99px;background:${barColor};width:${Math.min(pct,100)}%;transition:width .4s"></div>
+        </div>
+      </div>`;
+  }
+}
+
+function renderCoachNotes(notes) {
+  const el = document.getElementById("coach-notes-list");
+  if (!notes.length) {
+    el.innerHTML = '<p style="font-size:13px;color:var(--text-muted)">No coach notes yet.</p>';
+    return;
+  }
+  el.innerHTML = notes.slice(0,5).map(n => `
+    <div style="padding:10px 0;border-bottom:0.5px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span class="badge badge-purple" style="font-size:11px">${n.note_type.replace("_"," ")}</span>
+        <span style="font-size:11px;color:var(--text-hint)">${n.note_date}</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);line-height:1.6;margin:0">${n.content}</p>
+    </div>`).join("");
+}
+
+async function loadWeekReview() {
+  const card = document.getElementById("week-review-card");
+  const text = document.getElementById("week-review-text");
+  card.style.display = "block";
+  text.textContent = "Generating AI weekly summary…";
+  try {
+    const res = await fetch("/parent/week-review");
+    const d   = await res.json();
+    text.textContent = d.summary || "No summary available.";
+  } catch(_) {
+    text.textContent = "AI coach offline — start Ollama.";
+  }
+}
+
+async function saveSettings() {
+  const body = {
+    gaming_cap_daily:   document.getElementById("gaming-cap").value,
+    weekend_xp_minimum: document.getElementById("weekend-xp").value,
+    student_name:       document.getElementById("student-name-input").value.trim(),
+    student_age:        document.getElementById("student-age-input").value.trim(),
+    student_gender:     document.getElementById("student-gender-select").value,
+    xp_per_dollar:      document.getElementById("xp-per-dollar").value,
+  };
+  try {
+    await fetch("/parent/settings", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body),
+    });
+    const saved = document.getElementById("settings-saved");
+    saved.style.display = "block";
+    setTimeout(() => saved.style.display = "none", 3000);
+    showToast("Settings saved", "success");
+  } catch(_) { showToast("Save failed", "error"); }
+}
+
+async function loadXpRates() {
+  try {
+    const res  = await fetch("/parent/xp-rates");
+    const rows = await res.json();
+    const list = document.getElementById("xp-rates-list");
+    list.innerHTML = rows.map(r => `
+      <div style="display:flex;align-items:center;justify-content:space-between;
+        padding:7px 0;border-bottom:0.5px solid var(--border)">
+        <label style="font-size:13px;color:var(--text)">${r.label}</label>
+        <input type="number" id="xp-${r.key}" value="${r.xp_value}" min="0" max="9999" step="25"
+          style="width:80px;font-size:13px;text-align:right;padding:4px 8px">
+      </div>`).join("") + '<div style="height:4px"></div>';
+  } catch(_) {}
+}
+
+async function saveXpRates() {
+  const inputs = document.querySelectorAll("[id^='xp-']");
+  const body   = {};
+  inputs.forEach(el => {
+    const key = el.id.replace("xp-", "");
+    body[key] = parseInt(el.value) || 0;
+  });
+  try {
+    await fetch("/parent/xp-rates", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body),
+    });
+    const saved = document.getElementById("xp-rates-saved");
+    saved.style.display = "block";
+    setTimeout(() => saved.style.display = "none", 3000);
+    showToast("XP rates saved", "success");
+  } catch(_) { showToast("Save failed", "error"); }
+}
+
+async function changePin() {
+  const current = document.getElementById("pin-current").value;
+  const newPin  = document.getElementById("pin-new").value;
+  const confirm = document.getElementById("pin-confirm").value;
+  const result  = document.getElementById("pin-change-result");
+
+  try {
+    const res = await fetch("/parent/change-pin", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({current_pin:current, new_pin:newPin, confirm_pin:confirm}),
+    });
+    const d = await res.json();
+    result.style.display = "block";
+    if (d.success) {
+      result.style.color   = "var(--green-600)";
+      result.textContent   = "PIN updated successfully.";
+      document.getElementById("pin-current").value = "";
+      document.getElementById("pin-new").value     = "";
+      document.getElementById("pin-confirm").value = "";
+      showToast("PIN changed", "success");
+    } else {
+      result.style.color = "var(--red-600)";
+      result.textContent = d.error || "Failed to update PIN";
+    }
+  } catch(_) { showToast("Request failed", "error"); }
+}
+
+async function awardBonus() {
+  const amount = parseInt(document.getElementById("bonus-amount").value);
+  const reason = document.getElementById("bonus-reason").value.trim() || "Parent award";
+  if (!amount) { showToast("Enter an amount", "warning"); return; }
+  try {
+    const res = await fetch("/parent/bonus-xp", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({amount, reason}),
+    });
+    const d = await res.json();
+    const el = document.getElementById("bonus-result");
+    el.style.display = "block";
+    el.style.color = amount > 0 ? "var(--green-600)" : "var(--red-600)";
+    el.textContent = `${amount > 0 ? '+' : ''}${amount} XP — new total: ${d.total_xp.toLocaleString()} XP`;
+    showToast(`${amount > 0 ? '+' : ''}${amount} XP awarded`, amount > 0 ? "success" : "warning");
+    document.getElementById("bonus-amount").value = "";
+    document.getElementById("bonus-reason").value = "";
+  } catch(_) { showToast("Award failed", "error"); }
+}
+
+// ─── Pre-warm all lesson content ──────────────────────────────────────────────
+let _prewarmRunning = false;
+
+async function prewarmAllContent() {
+  if (_prewarmRunning) return;
+  _prewarmRunning = true;
+
+  const btn      = document.getElementById("prewarm-btn");
+  const stopBtn  = document.getElementById("prewarm-stop-btn");
+  const wrap     = document.getElementById("prewarm-progress-wrap");
+  const label    = document.getElementById("prewarm-label");
+  const countEl  = document.getElementById("prewarm-count");
+  const bar      = document.getElementById("prewarm-bar");
+  const result   = document.getElementById("prewarm-result");
+
+  btn.disabled      = true;
+  stopBtn.style.display = "block";
+  wrap.style.display    = "block";
+  result.style.display  = "none";
+  bar.style.width       = "0%";
+
+  // 1. Fetch all lessons and filter to those without cached content
+  let lessons;
+  try {
+    const res = await fetch("/finance/lessons");
+    lessons   = await res.json();
+  } catch(_) {
+    label.textContent = "Failed to load lesson list.";
+    _resetPrewarm();
+    return;
+  }
+
+  const pending = lessons.filter(l => !l.has_content);
+  const total   = pending.length;
+  const already = lessons.length - total;
+
+  if (total === 0) {
+    wrap.style.display   = "block";
+    label.textContent    = "All lessons already have content cached.";
+    countEl.textContent  = `${lessons.length} / ${lessons.length}`;
+    bar.style.width      = "100%";
+    countEl.textContent  = `${lessons.length} / ${lessons.length}`;
+    result.style.display = "block";
+    result.style.color   = "var(--green-600)";
+    result.textContent   = `Nothing to do — all ${lessons.length} lessons are pre-generated.`;
+    _resetPrewarm();
+    return;
+  }
+
+  label.textContent   = `Skipping ${already} already cached…`;
+  countEl.textContent = `0 / ${total}`;
+
+  let done = 0, failed = 0;
+
+  // 2. Generate each pending lesson sequentially
+  for (const lesson of pending) {
+    if (!_prewarmRunning) break;
+
+    label.textContent   = `Generating: "${lesson.title}"`;
+    countEl.textContent = `${done} / ${total}`;
+    bar.style.width     = `${Math.round((done / total) * 100)}%`;
+
+    try {
+      const res = await fetch(`/finance/lessons/${lesson.lesson_key}/content`);
+      if (!res.ok) { failed++; } else { done++; }
+    } catch(_) {
+      failed++;
+    }
+
+    countEl.textContent = `${done} / ${total}`;
+    bar.style.width     = `${Math.round((done / total) * 100)}%`;
+  }
+
+  // 3. Done — show summary
+  const stopped = !_prewarmRunning && done < total;
+  label.textContent    = stopped ? "Stopped early." : "Complete!";
+  bar.style.width      = "100%";
+  bar.style.background = failed > 0 ? "var(--amber-600)" : "var(--green-600)";
+
+  result.style.display = "block";
+  if (stopped) {
+    result.style.color = "var(--amber-600)";
+    result.textContent = `Stopped after ${done} lessons. ${total - done} remaining.`;
+  } else if (failed > 0) {
+    result.style.color = "var(--amber-600)";
+    result.textContent = `${done} generated, ${failed} failed (Ollama may be offline). Re-run to retry.`;
+  } else {
+    result.style.color = "var(--green-600)";
+    result.textContent = `All ${done} lessons pre-generated. ${already} were already cached. Finance tab is now instant.`;
+    showToast(`${done} lessons pre-generated`, "success");
+  }
+
+  _resetPrewarm();
+}
+
+function stopPrewarm() {
+  _prewarmRunning = false;
+}
+
+function _resetPrewarm() {
+  _prewarmRunning = false;
+  document.getElementById("prewarm-btn").disabled           = false;
+  document.getElementById("prewarm-stop-btn").style.display = "none";
+}
+
+// ─── Generate lessons ──────────────────────────────────────────────────────────
+async function generateLessons() {
+  const tier = parseInt(document.getElementById("gen-tier-select").value);
+  const btn  = document.getElementById("gen-lessons-btn");
+  const out  = document.getElementById("gen-lessons-result");
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2"></i> Generating…';
+  out.style.display = "block";
+  out.style.color   = "var(--text-muted)";
+  out.textContent   = "Asking Ollama for lesson ideas — this may take 10-20 seconds…";
+
+  try {
+    const res = await fetch("/parent/generate-lessons", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({tier}),
+    });
+    const d = await res.json();
+    if (d.error) {
+      out.style.color = "var(--red-600)";
+      out.textContent = d.error;
+    } else if (d.added === 0) {
+      out.style.color = "var(--amber-600)";
+      out.textContent = "No new lessons added — Ollama may be offline, or all generated topics already exist. Try again for different results.";
+    } else {
+      const short = d.added < 5
+        ? ` <span style="color:var(--amber-600);font-size:11px">(${5 - d.added} skipped — already existed)</span>`
+        : "";
+      out.style.color = "var(--green-600)";
+      out.innerHTML   = `<strong>${d.added} new lesson${d.added > 1 ? "s" : ""} added to Tier ${tier}${short}:</strong><br>` +
+        d.lessons.map(l => `• ${l.title}`).join("<br>");
+      showToast(`${d.added} lessons added to Tier ${tier}`, "success");
+    }
+  } catch(_) {
+    out.style.color = "var(--red-600)";
+    out.textContent = "Request failed — is Ollama running?";
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-sparkles"></i> Generate (up to 5)';
+  }
+}
+
+// ─── Reset checkboxes ─────────────────────────────────────────────────────────
+const RESET_LABELS = {
+  xp_ledger:        "XP ledger",
+  daily_logs:       "Daily logs & coach notes",
+  streaks:          "Streaks",
+  schedules:        "Schedules",
+  finance_trades:   "Finance trades & portfolio",
+  lesson_progress:  "Lesson completion flags",
+};
+
+function toggleAllReset(checked) {
+  document.querySelectorAll(".reset-cat").forEach(cb => cb.checked = checked);
+}
+
+function syncSelectAll() {
+  const all  = document.querySelectorAll(".reset-cat");
+  const done = document.querySelectorAll(".reset-cat:checked");
+  const allChk = document.getElementById("reset-all-chk");
+  allChk.checked       = done.length === all.length;
+  allChk.indeterminate = done.length > 0 && done.length < all.length;
+}
+
+function getSelectedCategories() {
+  return [...document.querySelectorAll(".reset-cat:checked")].map(cb => cb.value);
+}
+
+// ─── Reset modal ──────────────────────────────────────────────────────────────
+function openResetModal() {
+  const cats = getSelectedCategories();
+  if (!cats.length) {
+    showToast("Select at least one category to reset", "warning");
+    return;
+  }
+  const summaryEl = document.getElementById("reset-summary");
+  summaryEl.innerHTML = "<strong>Will permanently clear:</strong><br>" +
+    cats.map(c => `• ${RESET_LABELS[c] || c}`).join("<br>");
+
+  document.getElementById("reset-modal").style.display = "flex";
+  document.getElementById("reset-pin-input").value     = "";
+  document.getElementById("reset-error").style.display = "none";
+  setTimeout(() => document.getElementById("reset-pin-input").focus(), 50);
+}
+
+function closeResetModal() {
+  document.getElementById("reset-modal").style.display = "none";
+}
+
+async function confirmReset() {
+  const pin  = document.getElementById("reset-pin-input").value;
+  const cats = getSelectedCategories();
+  const err  = document.getElementById("reset-error");
+  err.style.display = "none";
+
+  if (!cats.length) {
+    err.style.display = "block";
+    err.textContent   = "No categories selected";
+    return;
+  }
+
+  try {
+    const res = await fetch("/parent/reset", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({pin, categories: cats}),
+    });
+    const d = await res.json();
+    if (d.success) {
+      closeResetModal();
+      document.querySelectorAll(".reset-cat").forEach(cb => cb.checked = false);
+      document.getElementById("reset-all-chk").checked = false;
+      showToast(d.message || "Reset complete", "success");
+      loadDashboard();
+    } else {
+      err.style.display = "block";
+      err.textContent   = d.error || "Reset failed";
+    }
+  } catch(_) {
+    err.style.display = "block";
+    err.textContent   = "Request failed — try again";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("reset-modal").addEventListener("click", function(e) {
+    if (e.target === this) closeResetModal();
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,216 @@
+SUMMER OS — GITHUB & DEPLOYMENT GUIDE
+======================================
+
+SECTION 1: PUSH TO GITHUB
+--------------------------
+
+1. Create a new repo on GitHub (github.com/new)
+   - Name: summer-os (or anything you like)
+   - Visibility: Private (recommended — this contains family config and PIN)
+   - Do NOT initialise with README (you already have one)
+
+2. Create a .gitignore in the project root to keep secrets and personal data out:
+
+   File: .gitignore
+   ─────────────────────────────────────────────────────────
+   # Secrets — never commit these
+   .env
+
+   # Database files — contain your kid's real XP, trades, streaks
+   *.db
+   *.db-wal
+   *.db-shm
+
+   # Python cache
+   __pycache__/
+   *.pyc
+   *.pyo
+
+   # Virtual environments
+   venv/
+   .venv/
+
+   # macOS metadata
+   .DS_Store
+
+   # Log files — contain local paths and timestamps, no value in git
+   logs/
+
+   # Personal documents accidentally in project root
+   *.docx
+   *.pdf
+
+   # IDE/editor folders
+   .vscode/
+   .idea/
+   ─────────────────────────────────────────────────────────
+
+3. Initialise git and push:
+
+   cd outputs/life/summer-os
+   git init
+   git add .
+   git commit -m "initial scaffold"
+   git branch -M main
+   git remote add origin https://github.com/<your-username>/summer-os.git
+   git push -u origin main
+
+IMPORTANT: .env is in .gitignore — it will NOT be pushed. Anyone cloning
+the repo must create their own .env from .env.example.
+
+
+SECTION 1A: PERSONAL DATA AUDIT CHECKLIST
+------------------------------------------
+
+Run this check BEFORE every git push. These files must never reach GitHub:
+
+  [ ] .env                         — PIN, secret key, student name/age
+  [ ] summer_os.db (and -wal/-shm) — XP history, trades, streaks, settings
+  [ ] logs/                        — local paths, timestamps, activity logs
+  [ ] *.docx / *.pdf               — any personal documents in the project folder
+  [ ] Any file containing a real name, PIN, or home network IP
+
+Verify what git will push before committing:
+
+   git status           — shows staged and unstaged files
+   git diff --cached    — shows exactly what is in the next commit
+
+If something sensitive shows up in git status, add it to .gitignore
+immediately and run:
+
+   git rm --cached <filename>    — removes from git tracking (keeps local copy)
+
+Check that .gitignore itself is committed so the rules travel with the repo:
+
+   git add .gitignore
+   git commit -m "add gitignore"
+
+The .bat scripts (start_summer_os.bat, stop_summer_os.bat) use %~dp0
+relative paths — they are safe to commit. They contain no hardcoded
+user directories, passwords, or machine-specific config.
+
+
+SECTION 2: RUNNING ON YOUR LOCAL PC (HOME NETWORK)
+----------------------------------------------------
+
+This is the recommended setup — LLM runs locally, zero cloud cost.
+
+Prerequisites:
+  - Python 3.10+
+  - Ollama installed (https://ollama.com)
+  - qwen3:8b already pulled (ollama pull qwen3:8b)
+
+Steps:
+  1. cd summer-os
+  2. pip install -r requirements.txt
+  3. cp .env.example .env   (then edit with your values)
+  4. ollama serve            (run in a separate terminal — stays running)
+  5. python app.py           (starts Flask on 0.0.0.0:5000)
+
+   OR use the automation scripts (Section 4) to handle start/stop automatically.
+
+Your kid accesses the app at:
+  http://<your-local-IP>:5000
+
+Find your local IP on Windows:
+  ipconfig
+  Look for "IPv4 Address" under your Wi-Fi adapter (e.g. 192.168.1.42)
+
+Find your local IP on Mac:
+  ipconfig getifaddr en0
+
+
+SECTION 3: REMOTE ACCESS VIA TAILSCALE (OPTIONAL)
+--------------------------------------------------
+
+If your kid needs access from outside the home network (e.g. from his phone
+on cellular), Tailscale is the cleanest solution.
+
+1. Install Tailscale on both machines: https://tailscale.com/download
+2. Sign in with the same account on both
+3. Your PC gets a Tailscale IP (e.g. 100.x.x.x) — find it at tailscale.com
+4. Your kid uses http://100.x.x.x:5000 from anywhere
+
+No port forwarding. No router config. Free for personal use.
+
+
+SECTION 4: AUTOMATED START / STOP (WINDOWS TASK SCHEDULER)
+------------------------------------------------------------
+
+Two scripts handle scheduling. Both are in the project root:
+
+  start_summer_os.bat  — Starts Flask if not already running (idempotent)
+  stop_summer_os.bat   — Kills Flask on port 5000; leaves Ollama running
+
+Logs: logs\summer_os_start.log and logs\summer_os_stop.log (auto-created)
+
+SETUP — Open PowerShell as Administrator and run the four commands below.
+Replace C:\path\to\summer-os with your actual project folder path.
+
+  # 1. Auto-start at 6:00 AM every day
+  schtasks /Create /TN "Summer-OS\Start 6AM" /TR "\"C:\path\to\summer-os\start_summer_os.bat\"" /SC DAILY /ST 06:00 /RU SYSTEM /F
+
+  # 2. Auto-start at logon
+  schtasks /Create /TN "Summer-OS\Start At Logon" /TR "\"C:\path\to\summer-os\start_summer_os.bat\"" /SC ONLOGON /RU SYSTEM /F
+
+  # 3. Auto-start at system startup
+  schtasks /Create /TN "Summer-OS\Start At Startup" /TR "\"C:\path\to\summer-os\start_summer_os.bat\"" /SC ONSTART /RU SYSTEM /F
+
+  # 4. Auto-stop at 11:00 PM every day
+  schtasks /Create /TN "Summer-OS\Stop 11PM" /TR "\"C:\path\to\summer-os\stop_summer_os.bat\"" /SC DAILY /ST 23:00 /RU SYSTEM /F
+
+Verify tasks were created:
+  schtasks /Query /TN "Summer-OS" /FO LIST
+
+Remove all Summer-OS tasks if needed:
+  schtasks /Delete /TN "Summer-OS" /F
+
+NOTE ON IDEMPOTENCY: The start script checks port 5000 before launching.
+All three start triggers (6 AM, logon, startup) can safely overlap —
+only the first to fire starts the app; the rest log "already running"
+and exit silently.
+
+NOTE ON PYTHON PATH: The start script uses C:\Python314\pythonw.exe by
+default (pythonw suppresses the console window). If your Python is in a
+different location, edit the PYTHON_EXE line at the top of start_summer_os.bat.
+
+
+SECTION 5: KEEPING THE APP UPDATED
+------------------------------------
+
+When you make code changes:
+  git add .
+  git commit -m "description of change"
+  git push
+
+Re-run the personal data audit checklist (Section 1A) before every push.
+
+The SQLite database (summer_os.db) persists across restarts and is NOT
+touched by code updates — your kid's XP, streak, and trade history are safe.
+
+For local use, restart the app after a code change:
+  - If running manually: Ctrl+C then python app.py
+  - If using Task Scheduler: run stop_summer_os.bat then start_summer_os.bat
+
+
+SECTION 6: DEPLOYING TO A FREE CLOUD HOST (OPTIONAL)
+-----------------------------------------------------
+
+If you want the app accessible without your PC being on, you can deploy
+to a free cloud host. Note: this moves the app off your machine, so you
+would use the Anthropic API (or a hosted model) instead of local Ollama.
+
+Recommended: Railway.app (free tier, simple git deploy)
+
+1. Push your code to GitHub (Section 1)
+2. Go to railway.app → New Project → Deploy from GitHub repo
+3. Set environment variables in Railway's dashboard (same keys as .env)
+4. For the AI engine, set:
+     OLLAMA_BASE_URL=https://api.anthropic.com  (or a hosted Ollama endpoint)
+   OR swap ai_engine.py to use the Anthropic SDK directly.
+5. Railway provides a public URL — your son can access from anywhere.
+
+DATABASE NOTE: Railway's filesystem is ephemeral. For persistent storage,
+add a Railway Postgres plugin, or use SQLite with a mounted volume.
+The simplest approach for home use: stay on local (Section 2) and use
+Tailscale (Section 3) for remote access.

@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+{% block title %}Today — Summer OS{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ today.strftime('%A, %B %d').replace(' 0', ' ') }}</h1>
+    <p class="page-sub" id="level-streak-sub">Loading…</p>
+  </div>
+  <div class="header-badges" id="header-badges" style="opacity:0"></div>
+</div>
+
+<!-- AI warmup banner -->
+<div id="warmup-banner" class="card card-ai">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+    <div id="warmup-spinner" class="spinner"></div>
+    <div>
+      <div style="font-size:13px;font-weight:500;color:var(--purple-600)" id="warmup-title">Starting AI engine…</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="warmup-sub">Your schedule will appear once the model is ready</div>
+    </div>
+  </div>
+  <!-- Step progress track -->
+  <div style="display:flex;gap:6px;align-items:center">
+    <div class="step-dot" id="step-0">
+      <div class="step-pip"></div><span>Init</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="step-1">
+      <div class="step-pip"></div><span>Ollama</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="step-2">
+      <div class="step-pip"></div><span>Loading model</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="step-3">
+      <div class="step-pip"></div><span>Schedule</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="step-4">
+      <div class="step-pip"></div><span>Ready</span>
+    </div>
+  </div>
+
+  <!-- Daily quote — injected by JS once ready -->
+  <div id="daily-quote-wrap" style="display:none;margin-top:14px;padding-top:12px;border-top:0.5px solid var(--purple-200)">
+    <div style="font-size:13px;font-style:italic;color:var(--text);line-height:1.6" id="daily-quote-text"></div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:4px" id="daily-quote-author"></div>
+  </div>
+</div>
+
+<!-- Core loop — always visible ─────────────────────────────── -->
+<div class="card" style="background:linear-gradient(135deg,var(--purple-50),var(--green-50));border-color:var(--purple-200)">
+  <div class="section-label" style="margin-bottom:10px;color:var(--purple-700)">The core loop — 3 steps</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+    <div style="text-align:center;padding:10px 8px;background:var(--surface);border-radius:var(--radius-md)">
+      <div style="font-size:22px;margin-bottom:4px">💪</div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:3px">1. Do stuff</div>
+      <div style="font-size:11px;color:var(--text-muted)">Sports, reading, chores, finance lessons</div>
+    </div>
+    <div style="text-align:center;padding:10px 8px;background:var(--surface);border-radius:var(--radius-md)">
+      <div style="font-size:22px;margin-bottom:4px">⭐</div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:3px">2. Log XP</div>
+      <div style="font-size:11px;color:var(--text-muted)">Hit "Log" after each activity</div>
+    </div>
+    <div style="text-align:center;padding:10px 8px;background:var(--surface);border-radius:var(--radius-md)">
+      <div style="font-size:22px;margin-bottom:4px">🎮</div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:3px">3. Earn gaming</div>
+      <div style="font-size:11px;color:var(--text-muted)">Hit 500 XP → unlock gaming hours</div>
+    </div>
+  </div>
+</div>
+
+<!-- Metric cards — skeleton until loaded -->
+<div class="metric-grid">
+  <div class="metric-card">
+    <div class="metric-label">Today's XP</div>
+    <div class="metric-val skel" id="m-daily-xp">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Weekly XP</div>
+    <div class="metric-val skel" id="m-weekly-xp">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Gaming earned</div>
+    <div class="metric-val skel" id="m-gaming">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Balance score</div>
+    <div class="metric-val skel" id="m-balance">—</div>
+  </div>
+</div>
+
+<!-- Level progress bar -->
+<div class="card">
+  <div class="section-label" id="xp-bar-label">XP progress</div>
+  <div class="xp-bar-row">
+    <span class="xp-bar-label" id="bar-level-cur">—</span>
+    <span class="xp-bar-label" id="bar-level-next">—</span>
+  </div>
+  <div class="xp-bar-wrap"><div class="xp-bar" id="xp-bar" style="width:0%"></div></div>
+  <div class="xp-bar-sub" id="xp-bar-sub">—</div>
+</div>
+
+<!-- Schedule -->
+<div class="card">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div class="section-label" style="margin-bottom:0">Today's schedule</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn-log" id="btn-ai-sched" onclick="generateSchedule(true)" style="font-size:11px;padding:4px 10px">
+        <i class="ti ti-robot" aria-hidden="true"></i> AI
+      </button>
+      <button class="btn-log" id="btn-manual-sched" onclick="openManualBuilder()" style="font-size:11px;padding:4px 10px">
+        <i class="ti ti-pencil" aria-hidden="true"></i> Manual
+      </button>
+    </div>
+  </div>
+  <div id="schedule-list">
+    <!-- Skeleton rows -->
+    <div class="skel-row"></div>
+    <div class="skel-row"></div>
+    <div class="skel-row"></div>
+    <div class="skel-row"></div>
+  </div>
+</div>
+
+<!-- Manual schedule builder (hidden by default) -->
+<div id="manual-builder" class="card" style="display:none;border-color:var(--purple-200)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:14px;font-weight:500">Build today's schedule</div>
+    <button class="btn-log" onclick="closeManualBuilder()" style="font-size:11px;padding:3px 8px">
+      <i class="ti ti-x" aria-hidden="true"></i> Close
+    </button>
+  </div>
+  <div id="manual-activity-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+    <div style="font-size:13px;color:var(--text-muted)">Loading activities…</div>
+  </div>
+  <button class="btn-log" onclick="saveManualSchedule()"
+    style="width:100%;padding:9px;font-size:13px;font-weight:500">
+    Save schedule
+  </button>
+  <div id="manual-result" style="font-size:13px;margin-top:8px;display:none"></div>
+</div>
+
+<!-- AI coach note — hidden until ready -->
+<div id="coach-card" class="card card-ai" style="display:none">
+  <div class="ai-header"><i class="ti ti-robot" aria-hidden="true"></i> AI coach</div>
+  <p class="ai-note" id="coach-note"></p>
+</div>
+
+<!-- Balance flags — hidden until ready -->
+<div id="flags-card" style="display:none">
+  <div class="card">
+    <div class="section-label">Balance flags</div>
+    <div id="flags-list"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Boot sequence ────────────────────────────────────────────
+async function boot() {
+  await postJSON("/api/warmup", {});
+  startQuoteCycle();   // load stored quotes immediately and start cycling
+  generateNewQuote();  // fire Ollama in background — adds to pool when done
+  poll();
+}
+
+// ── Quote cycling ─────────────────────────────────────────────
+let _quotePool   = [];
+let _quoteIndex  = 0;
+let _quoteTimer  = null;
+
+async function startQuoteCycle() {
+  try {
+    const res = await fetch("/api/daily-quotes");
+    const quotes = await res.json();
+    if (quotes && quotes.length) {
+      // Shuffle so it's different each visit
+      _quotePool = quotes.sort(() => Math.random() - 0.5);
+      showQuote(_quotePool[0]);
+      _quoteIndex = 1;
+      _quoteTimer = setInterval(advanceQuote, 4500);
+    }
+  } catch(_) { /* optional — silent fail */ }
+}
+
+function showQuote(q) {
+  const wrap   = document.getElementById("daily-quote-wrap");
+  const textEl = document.getElementById("daily-quote-text");
+  const authEl = document.getElementById("daily-quote-author");
+  // Fade out → swap → fade in
+  wrap.style.transition = "opacity .4s";
+  wrap.style.opacity    = "0";
+  setTimeout(() => {
+    textEl.textContent   = `"${q.quote}"`;
+    authEl.textContent   = `— ${q.author || ""}`;
+    wrap.style.display   = "block";
+    wrap.style.opacity   = "1";
+  }, 400);
+}
+
+function advanceQuote() {
+  if (!_quotePool.length) return;
+  showQuote(_quotePool[_quoteIndex % _quotePool.length]);
+  _quoteIndex++;
+}
+
+async function generateNewQuote() {
+  try {
+    const res = await fetch("/api/daily-quote");
+    const d   = await res.json();
+    if (d.quote) {
+      // Add to pool if not already present (exact match)
+      const already = _quotePool.some(q => q.quote === d.quote);
+      if (!already) {
+        _quotePool.push(d);
+      }
+    }
+  } catch(_) { /* optional — silent fail */ }
+}
+
+async function poll() {
+  try {
+    const res = await fetch("/api/ai-status");
+    const d   = await res.json();
+
+    // Update live message from server
+    document.getElementById("warmup-title").textContent = d.message;
+
+    // Advance step dots
+    setStep(d.step || 0);
+
+    if (d.status === "ready") {
+      setStep(4, true);
+      await loadDashboard();
+      hideBanner("success");
+    } else if (d.status === "error") {
+      document.getElementById("warmup-spinner").innerHTML =
+        "<i class='ti ti-alert-circle' style='font-size:20px;color:var(--red-600)'></i>";
+      document.getElementById("warmup-title").style.color = "var(--red-600)";
+      document.getElementById("warmup-sub").textContent   = d.message;
+      await loadDashboard();   // load with fallback schedule
+    } else {
+      setTimeout(poll, 2000);
+    }
+  } catch(_) {
+    setTimeout(poll, 3000);
+  }
+}
+
+let _lastStep = -1;
+function setStep(n, done = false) {
+  if (n === _lastStep && !done) return;
+  _lastStep = n;
+  for (let i = 0; i <= 4; i++) {
+    const dot = document.getElementById("step-" + i);
+    if (!dot) continue;
+    dot.classList.remove("step-active", "step-done", "step-pending");
+    if (i < n || done)       dot.classList.add("step-done");
+    else if (i === n)        dot.classList.add("step-active");
+    else                     dot.classList.add("step-pending");
+  }
+}
+
+function hideBanner(state) {
+  const banner  = document.getElementById("warmup-banner");
+  const spinner = document.getElementById("warmup-spinner");
+  spinner.style.display = "none";
+  if (state === "success") {
+    document.getElementById("warmup-title").textContent = "AI engine ready — schedule loaded";
+    document.getElementById("warmup-title").style.color = "var(--green-600)";
+    document.getElementById("warmup-sub").textContent   = "qwen3.5:9b is online.";
+    setTimeout(() => {
+      banner.style.transition = "opacity .5s";
+      banner.style.opacity    = "0";
+      setTimeout(() => banner.style.display = "none", 500);
+    }, 2000);
+  }
+}
+
+// ── Data loading ─────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const res = await fetch("/api/today");
+    const d   = await res.json();
+
+    // Metrics
+    setText("m-daily-xp",  d.daily_xp.toLocaleString(), "var(--purple-600)");
+    setText("m-weekly-xp", d.weekly_xp.toLocaleString());
+    setText("m-gaming",    (d.gaming_hours || 0).toFixed(1) + " hr", "var(--amber-700)");
+    setText("m-balance",   (d.balance && d.balance.balance_score) || "—", "var(--green-600)");
+    document.querySelectorAll(".skel").forEach(e => e.classList.remove("skel"));
+
+    // Header
+    const lv = d.level;
+    document.getElementById("level-streak-sub").textContent =
+      `Level ${lv.level} · ${d.streak.current_streak}-day streak`;
+    const badges = document.getElementById("header-badges");
+    badges.innerHTML = `
+      <span class="badge badge-purple"><i class="ti ti-bolt" aria-hidden="true"></i> Level ${lv.level}</span>
+      ${d.streak.current_streak >= 3
+        ? `<span class="badge badge-amber"><i class="ti ti-flame" aria-hidden="true"></i> ${d.streak.current_streak} days</span>`
+        : ""}`;
+    badges.style.opacity = "1";
+
+    // XP bar
+    document.getElementById("xp-bar-label").textContent =
+      `XP to level ${lv.level + 1} (${lv.xp_to_next.toLocaleString()} remaining)`;
+    document.getElementById("bar-level-cur").textContent  = `Level ${lv.level}`;
+    document.getElementById("bar-level-next").textContent = `Level ${lv.level + 1}`;
+    document.getElementById("xp-bar").style.width         = lv.pct_complete + "%";
+    document.getElementById("xp-bar-sub").textContent     =
+      `${lv.total_xp.toLocaleString()} / ${(lv.total_xp + lv.xp_to_next).toLocaleString()} XP total`;
+
+    // Schedule
+    renderSchedule(d.schedule);
+
+    // Coach note
+    if (d.schedule && d.schedule.coach_note) {
+      document.getElementById("coach-note").textContent = d.schedule.coach_note;
+      document.getElementById("coach-card").style.display = "block";
+    }
+
+    // Balance flags
+    if (d.balance && d.balance.flags && d.balance.flags.length) {
+      const list = document.getElementById("flags-list");
+      list.innerHTML = d.balance.flags.map(f => `
+        <div class="alert alert-${f.severity || 'warning'}">
+          <i class="ti ti-alert-triangle" aria-hidden="true"></i> ${f.message}
+        </div>`).join("");
+      document.getElementById("flags-card").style.display = "block";
+    }
+
+    // Nav XP
+    document.getElementById("nav-xp-val").textContent = lv.total_xp.toLocaleString() + " XP";
+
+  } catch(e) {
+    console.error("Dashboard load error:", e);
+  }
+}
+
+function renderSchedule(schedule) {
+  const list = document.getElementById("schedule-list");
+  const blocks = (schedule && schedule.blocks) || [];
+  if (!blocks.length) {
+    list.innerHTML = `<p class="empty-state">No schedule yet. <a href="#" onclick="generateSchedule()">Generate today's plan</a></p>`;
+    return;
+  }
+  list.innerHTML = blocks.map((b, i) => {
+    const done    = b.completed === 1;
+    const dotCls  = done ? "dot-done" : i === 0 ? "dot-active" : "dot-pending";
+    const xpPart  = done
+      ? `<span class="xp-pill xp-done">+${b.xp_value} XP ✓</span>`
+      : b.activity_key === "gaming"
+        ? `<span class="badge badge-amber">Earned</span>`
+        : `<button class="btn-log" onclick="logActivity('${b.activity_key}', this)">Log +${b.xp_value} XP</button>`;
+    return `
+      <div class="activity-row" data-key="${b.activity_key}">
+        <div class="activity-status"><div class="status-dot ${dotCls}"></div></div>
+        <div class="activity-icon ${b.color_class || 'cell-free'}">
+          <i class="ti ${b.icon || 'ti-star'}" aria-hidden="true"></i>
+        </div>
+        <div class="activity-info">
+          <div class="activity-title">${b.label}</div>
+          <div class="activity-meta">${b.start_time} – ${b.end_time} · ${(b.category||'').replace('_',' ')}</div>
+        </div>
+        <div class="activity-xp">${xpPart}</div>
+      </div>`;
+  }).join("");
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function setText(id, val, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  if (color) el.style.color = color;
+}
+
+async function generateSchedule() {
+  showToast("Generating schedule…", "info");
+  await postJSON("/schedule/generate", {force: true});
+  location.reload();
+}
+
+boot();
+
+// ── Manual schedule builder ──────────────────────────────────
+let _activities = [];
+
+async function openManualBuilder() {
+  const builder = document.getElementById("manual-builder");
+  builder.style.display = "block";
+  builder.scrollIntoView({behavior:"smooth", block:"nearest"});
+  if (_activities.length) return;
+  const res = await fetch("/schedule/activities");
+  _activities = await res.json();
+  renderActivityPicker();
+}
+
+function closeManualBuilder() {
+  document.getElementById("manual-builder").style.display = "none";
+}
+
+function renderActivityPicker() {
+  const list = document.getElementById("manual-activity-list");
+  list.innerHTML = _activities.filter(a => a.key !== "gaming").map(a => `
+    <div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;
+      padding:8px;background:var(--surface-2);border-radius:var(--radius-md)">
+      <input type="checkbox" id="act-${a.key}" value="${a.key}" style="width:16px;height:16px;accent-color:var(--purple-600)">
+      <label for="act-${a.key}" style="font-size:13px;font-weight:500;cursor:pointer">
+        <i class="ti ${a.icon}" aria-hidden="true" style="margin-right:4px"></i>${a.label}
+        <span class="badge badge-purple" style="margin-left:4px;font-size:10px">+${a.xp_value} XP</span>
+      </label>
+      <div>
+        <div style="font-size:10px;color:var(--text-hint);margin-bottom:2px">Start</div>
+        <input type="time" id="start-${a.key}" value="09:00"
+          style="font-size:12px;padding:3px 6px;background:var(--surface);color:var(--text);
+                 border:0.5px solid var(--border-2);border-radius:var(--radius-md)">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-hint);margin-bottom:2px">End</div>
+        <input type="time" id="end-${a.key}" value="10:00"
+          style="font-size:12px;padding:3px 6px;background:var(--surface);color:var(--text);
+                 border:0.5px solid var(--border-2);border-radius:var(--radius-md)">
+      </div>
+    </div>`).join("");
+
+  // Also add gaming at the bottom
+  list.innerHTML += `
+    <div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;
+      padding:8px;background:var(--amber-50);border-radius:var(--radius-md)">
+      <input type="checkbox" id="act-gaming" value="gaming" style="width:16px;height:16px;accent-color:var(--amber-600)">
+      <label for="act-gaming" style="font-size:13px;font-weight:500;cursor:pointer;color:var(--amber-700)">
+        <i class="ti ti-device-gamepad-2" aria-hidden="true" style="margin-right:4px"></i>Gaming (earned window)
+      </label>
+      <div>
+        <div style="font-size:10px;color:var(--text-hint);margin-bottom:2px">Start</div>
+        <input type="time" id="start-gaming" value="16:00"
+          style="font-size:12px;padding:3px 6px;background:var(--surface);color:var(--text);
+                 border:0.5px solid var(--border-2);border-radius:var(--radius-md)">
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text-hint);margin-bottom:2px">End</div>
+        <input type="time" id="end-gaming" value="19:00"
+          style="font-size:12px;padding:3px 6px;background:var(--surface);color:var(--text);
+                 border:0.5px solid var(--border-2);border-radius:var(--radius-md)">
+      </div>
+    </div>`;
+}
+
+async function saveManualSchedule() {
+  const allActs = [..._activities.map(a => a.key), "gaming"];
+  const blocks  = [];
+  allActs.forEach(key => {
+    const cb    = document.getElementById("act-" + key);
+    const start = document.getElementById("start-" + key);
+    const end   = document.getElementById("end-" + key);
+    if (cb && cb.checked && start && end) {
+      blocks.push({activity_key: key, start_time: start.value, end_time: end.value});
+    }
+  });
+
+  if (!blocks.length) {
+    showToast("Select at least one activity", "warning");
+    return;
+  }
+
+  const res  = await postJSON("/schedule/manual", {blocks});
+  const result = document.getElementById("manual-result");
+  result.style.display = "block";
+  result.style.color = "var(--green-600)";
+  result.textContent = `Schedule saved — ${blocks.length} activities`;
+  showToast("Schedule saved!", "success");
+  closeManualBuilder();
+  await loadDashboard();
+}
+</script>
+
+<style>
+/* Skeleton shimmer */
+.skel {
+  color: transparent !important;
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 4px;
+  min-width: 48px;
+}
+.skel-row {
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  margin-bottom: 10px;
+}
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Spinner */
+.spinner {
+  width: 20px; height: 20px; flex-shrink: 0;
+  border: 2px solid var(--purple-200);
+  border-top-color: var(--purple-600);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Step progress dots */
+.step-dot {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--text-hint); flex-shrink: 0;
+  transition: color .3s;
+}
+.step-pip {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--border); transition: background .3s;
+}
+.step-line {
+  flex: 1; height: 2px; background: var(--border);
+  border-radius: 1px; transition: background .3s;
+}
+.step-active .step-pip  { background: var(--purple-600); box-shadow: 0 0 0 3px var(--purple-50); }
+.step-active            { color: var(--purple-600); }
+.step-done .step-pip    { background: var(--green-600); }
+.step-done              { color: var(--green-600); }
+.step-pending .step-pip { background: var(--border); }
+.step-pending           { color: var(--text-hint); }
+</style>
+{% endblock %}
