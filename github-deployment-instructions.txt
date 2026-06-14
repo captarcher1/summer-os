@@ -147,23 +147,36 @@ Logs: logs\summer_os_start.log and logs\summer_os_stop.log (auto-created)
 SETUP — Open PowerShell as Administrator and run the four commands below.
 Replace C:\path\to\summer-os with your actual project folder path.
 
+NOTE ON QUOTING: Use backtick (`") to escape inner quotes in PowerShell.
+The \" syntax is cmd-style and will fail in PowerShell.
+
   # 1. Auto-start at 6:00 AM every day
-  schtasks /Create /TN "Summer-OS\Start 6AM" /TR "\"C:\path\to\summer-os\start_summer_os.bat\"" /SC DAILY /ST 06:00 /RU SYSTEM /F
+  schtasks /Create /TN "Summer-OS\Start 6AM" /TR "`"C:\path\to\summer-os\start_summer_os.bat`"" /SC DAILY /ST 06:00 /RU SYSTEM /F
 
   # 2. Auto-start at logon
-  schtasks /Create /TN "Summer-OS\Start At Logon" /TR "\"C:\path\to\summer-os\start_summer_os.bat\"" /SC ONLOGON /RU SYSTEM /F
+  schtasks /Create /TN "Summer-OS\Start At Logon" /TR "`"C:\path\to\summer-os\start_summer_os.bat`"" /SC ONLOGON /RU SYSTEM /F
 
   # 3. Auto-start at system startup
-  schtasks /Create /TN "Summer-OS\Start At Startup" /TR "\"C:\path\to\summer-os\start_summer_os.bat\"" /SC ONSTART /RU SYSTEM /F
+  schtasks /Create /TN "Summer-OS\Start At Startup" /TR "`"C:\path\to\summer-os\start_summer_os.bat`"" /SC ONSTART /RU SYSTEM /F
 
   # 4. Auto-stop at 11:00 PM every day
-  schtasks /Create /TN "Summer-OS\Stop 11PM" /TR "\"C:\path\to\summer-os\stop_summer_os.bat\"" /SC DAILY /ST 23:00 /RU SYSTEM /F
+  schtasks /Create /TN "Summer-OS\Stop 11PM" /TR "`"C:\path\to\summer-os\stop_summer_os.bat`"" /SC DAILY /ST 23:00 /RU SYSTEM /F
 
-Verify tasks were created:
-  schtasks /Query /TN "Summer-OS" /FO LIST
+Verify tasks were created (query each task by its full name — folder-level
+queries are not supported by schtasks):
+  schtasks /Query /TN "Summer-OS\Start 6AM" /FO LIST
+  schtasks /Query /TN "Summer-OS\Start At Logon" /FO LIST
+  schtasks /Query /TN "Summer-OS\Start At Startup" /FO LIST
+  schtasks /Query /TN "Summer-OS\Stop 11PM" /FO LIST
+
+Alternatively, open Task Scheduler GUI → Task Scheduler Library and look
+for the Summer-OS folder in the left panel.
 
 Remove all Summer-OS tasks if needed:
-  schtasks /Delete /TN "Summer-OS" /F
+  schtasks /Delete /TN "Summer-OS\Start 6AM" /F
+  schtasks /Delete /TN "Summer-OS\Start At Logon" /F
+  schtasks /Delete /TN "Summer-OS\Start At Startup" /F
+  schtasks /Delete /TN "Summer-OS\Stop 11PM" /F
 
 NOTE ON IDEMPOTENCY: The start script checks port 5000 before launching.
 All three start triggers (6 AM, logon, startup) can safely overlap —
